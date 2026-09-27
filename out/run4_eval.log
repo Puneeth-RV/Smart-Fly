@@ -1,0 +1,18 @@
+evaluating on 200 shared episode seeds
+
+  random policy ...
+  untrained brain (fixed wiring, no learning) ...
+  mb (trained) ...
+  readout (trained) ...
+
+condition       mean           95% CI  median    max  vs random        p
+--------------------------------------------------------------------------
+random          13.8 [  12.9,  14.7]    12.0     50      1.00x      nan
+untrained       12.9 [  12.2,  13.7]    11.0     41      0.94x   0.1438
+mb              13.4 [  12.7,  14.2]    12.0     41      0.97x   0.5511
+readout         12.9 [  12.2,  13.7]    11.0     41      0.94x   0.1438
+
+mb vs untrained brain (did the mushroom body add anything?): p=0.3556
+mb vs trained readout (fly's rule vs generic decoder):        p=0.3556
+
+wrote /Users/puneethrv/Auraspace/SmartFly/out/run4_eval.json

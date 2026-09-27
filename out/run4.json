@@ -1,0 +1,232 @@
+{
+  "config": {
+    "episodes": 400,
+    "eval_every": 50,
+    "eval_episodes": 15,
+    "max_hops": 5,
+    "target_hz": 6.0,
+    "brain_steps": 8,
+    "lr": 0.04,
+    "full_brain": true,
+    "agents": "mb,readout",
+    "seed": 0,
+    "tag": "run4"
+  },
+  "random_baseline": {
+    "episodes": 200,
+    "mean_distance": 13.735,
+    "median_distance": 12.0,
+    "max_distance": 39.0,
+    "mean_return": -7.7177999999999995
+  },
+  "calibration": {
+    "gain": 4.923882631706742,
+    "mean_hz": 9.560541606246403,
+    "active_frac": 0.3055169467559583,
+    "synchrony": 0.12573824966447
+  },
+  "curves": {
+    "mb": [
+      {
+        "episode": 1,
+        "eval_distance": 13.0,
+        "eval_max": 25.0,
+        "train_return": -7.82,
+        "explore": 0.349125,
+        "elapsed_s": 3.263478541994118,
+        "weights": {
+          "n_plastic": 44042,
+          "mean_abs_change": 1.0003884199250024e-05,
+          "frac_depressed": 0.0877798465101494,
+          "frac_potentiated": 0.12642477634984786
+        }
+      },
+      {
+        "episode": 50,
+        "eval_distance": 14.866666666666667,
+        "eval_max": 32.0,
+        "train_return": -7.6000000000000005,
+        "explore": 0.30624999999999997,
+        "elapsed_s": 18.148800541996025,
+        "weights": {
+          "n_plastic": 44042,
+          "mean_abs_change": 0.0005012750625610352,
+          "frac_depressed": 0.14261386857999184,
+          "frac_potentiated": 0.19109032287362063
+        }
+      },
+      {
+        "episode": 100,
+        "eval_distance": 15.0,
+        "eval_max": 34.0,
+        "train_return": -7.04,
+        "explore": 0.26249999999999996,
+        "elapsed_s": 32.62063895899337,
+        "weights": {
+          "n_plastic": 44042,
+          "mean_abs_change": 0.0009840746643021703,
+          "frac_depressed": 0.14985695472503519,
+          "frac_potentiated": 0.19663048907860678
+        }
+      },
+      {
+        "episode": 150,
+        "eval_distance": 13.2,
+        "eval_max": 33.0,
+        "train_return": -7.82,
+        "explore": 0.21875,
+        "elapsed_s": 48.06519270899298,
+        "weights": {
+          "n_plastic": 44042,
+          "mean_abs_change": 0.001433061552233994,
+          "frac_depressed": 0.1535806729939603,
+          "frac_potentiated": 0.20074020253394487
+        }
+      },
+      {
+        "episode": 200,
+        "eval_distance": 17.333333333333332,
+        "eval_max": 44.0,
+        "train_return": -15.700000000000001,
+        "explore": 0.175,
+        "elapsed_s": 63.11158749999595,
+        "weights": {
+          "n_plastic": 44042,
+          "mean_abs_change": 0.0017940638354048133,
+          "frac_depressed": 0.15526088733481677,
+          "frac_potentiated": 0.20235230007719904
+        }
+      },
+      {
+        "episode": 250,
+        "eval_distance": 12.0,
+        "eval_max": 23.0,
+        "train_return": -7.760000000000001,
+        "explore": 0.13124999999999998,
+        "elapsed_s": 77.02434087499569,
+        "weights": {
+          "n_plastic": 44042,
+          "mean_abs_change": 0.0021364782005548477,
+          "frac_depressed": 0.1564642840924572,
+          "frac_potentiated": 0.20453203760047228
+        }
+      },
+      {
+        "episode": 300,
+        "eval_distance": 10.733333333333333,
+        "eval_max": 27.0,
+        "train_return": -7.58,
+        "explore": 0.0875,
+        "elapsed_s": 92.57396458399307,
+        "weights": {
+          "n_plastic": 44042,
+          "mean_abs_change": 0.002509363694116473,
+          "frac_depressed": 0.1579855592389083,
+          "frac_potentiated": 0.20655283592934018
+        }
+      },
+      {
+        "episode": 350,
+        "eval_distance": 14.0,
+        "eval_max": 29.0,
+        "train_return": -7.24,
+        "explore": 0.05,
+        "elapsed_s": 106.03281750000315,
+        "weights": {
+          "n_plastic": 44042,
+          "mean_abs_change": 0.002817953936755657,
+          "frac_depressed": 0.15880296081013578,
+          "frac_potentiated": 0.20716588710776077
+        }
+      },
+      {
+        "episode": 400,
+        "eval_distance": 16.2,
+        "eval_max": 35.0,
+        "train_return": -6.5200000000000005,
+        "explore": 0.05,
+        "elapsed_s": 121.48266020900337,
+        "weights": {
+          "n_plastic": 44042,
+          "mean_abs_change": 0.003174666315317154,
+          "frac_depressed": 0.15968847917896553,
+          "frac_potentiated": 0.2079378774805867
+        }
+      }
+    ],
+    "readout": [
+      {
+        "episode": 1,
+        "eval_distance": 14.666666666666666,
+        "eval_max": 33.0,
+        "train_return": -7.720000000000001,
+        "explore": 0.349125,
+        "elapsed_s": 3.574811124999542
+      },
+      {
+        "episode": 50,
+        "eval_distance": 12.8,
+        "eval_max": 26.0,
+        "train_return": -7.6000000000000005,
+        "explore": 0.30624999999999997,
+        "elapsed_s": 16.06150029199489
+      },
+      {
+        "episode": 100,
+        "eval_distance": 12.0,
+        "eval_max": 22.0,
+        "train_return": -7.800000000000001,
+        "explore": 0.26249999999999996,
+        "elapsed_s": 28.658584332995815
+      },
+      {
+        "episode": 150,
+        "eval_distance": 11.466666666666667,
+        "eval_max": 18.0,
+        "train_return": -7.840000000000001,
+        "explore": 0.21875,
+        "elapsed_s": 41.67764749999333
+      },
+      {
+        "episode": 200,
+        "eval_distance": 12.133333333333333,
+        "eval_max": 22.0,
+        "train_return": -7.840000000000001,
+        "explore": 0.175,
+        "elapsed_s": 53.96468733300571
+      },
+      {
+        "episode": 250,
+        "eval_distance": 12.266666666666667,
+        "eval_max": 27.0,
+        "train_return": -7.78,
+        "explore": 0.13124999999999998,
+        "elapsed_s": 66.74123845799477
+      },
+      {
+        "episode": 300,
+        "eval_distance": 11.466666666666667,
+        "eval_max": 26.0,
+        "train_return": -7.82,
+        "explore": 0.0875,
+        "elapsed_s": 79.19305904199427
+      },
+      {
+        "episode": 350,
+        "eval_distance": 13.733333333333333,
+        "eval_max": 30.0,
+        "train_return": -7.260000000000001,
+        "explore": 0.05,
+        "elapsed_s": 91.57860033299949
+      },
+      {
+        "episode": 400,
+        "eval_distance": 14.2,
+        "eval_max": 25.0,
+        "train_return": -7.840000000000001,
+        "explore": 0.05,
+        "elapsed_s": 104.13465691699821
+      }
+    ]
+  }
+}

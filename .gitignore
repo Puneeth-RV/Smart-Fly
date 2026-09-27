@@ -1,0 +1,17 @@
+# Virtualenv
+.venv/
+__pycache__/
+*.pyc
+
+# Raw connectome release (~1.1 GB) — re-download with the commands in README
+data/raw/
+
+# Derived from data/raw by src/connectome/build.py (~84 MB)
+data/processed/
+
+# Long gameplay recording; out/fly_plays.gif is kept as the short one
+out/fly_fast.gif
+
+# Scratch
+out/smoke.json
+out/run1.log

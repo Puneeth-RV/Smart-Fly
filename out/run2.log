@@ -1,0 +1,51 @@
+full connectome: 166,197 neurons, 10,237,254 signed edges, 10,520,377 structural edges
+calibrated gain=1.194 -> 6.51 Hz, synchrony 0.29, 71.0% of neurons active
+
+random-policy floor: mean distance 13.7, mean return -7.72
+
+==================================================================
+training: mb
+==================================================================
+plastic KC->MBON synapses: 44,042
+  ep    1  eval_dist   10.7 (max    21)  eps=0.35      4s | dw=0.0000 depressed=32.2%
+  ep   40  eval_dist   14.0 (max    39)  eps=0.33     24s | dw=0.0008 depressed=46.3%
+  ep   80  eval_dist   15.3 (max    31)  eps=0.30     46s | dw=0.0017 depressed=46.1%
+  ep  120  eval_dist   14.9 (max    26)  eps=0.28     70s | dw=0.0025 depressed=45.7%
+  ep  160  eval_dist   15.2 (max    23)  eps=0.26     92s | dw=0.0033 depressed=45.6%
+  ep  200  eval_dist   16.6 (max    34)  eps=0.23    113s | dw=0.0041 depressed=45.6%
+  ep  240  eval_dist   17.8 (max    36)  eps=0.21    138s | dw=0.0048 depressed=45.6%
+  ep  280  eval_dist   14.9 (max    28)  eps=0.19    161s | dw=0.0055 depressed=45.6%
+  ep  320  eval_dist   16.7 (max    54)  eps=0.16    185s | dw=0.0062 depressed=45.6%
+  ep  360  eval_dist   14.6 (max    21)  eps=0.14    207s | dw=0.0068 depressed=45.6%
+  ep  400  eval_dist   12.5 (max    21)  eps=0.12    230s | dw=0.0074 depressed=45.6%
+  ep  440  eval_dist   17.7 (max    38)  eps=0.09    255s | dw=0.0079 depressed=45.6%
+  ep  480  eval_dist   12.8 (max    26)  eps=0.07    276s | dw=0.0084 depressed=45.6%
+  ep  520  eval_dist   12.6 (max    23)  eps=0.05    297s | dw=0.0089 depressed=45.6%
+  ep  560  eval_dist   12.8 (max    23)  eps=0.05    320s | dw=0.0094 depressed=45.6%
+  ep  600  eval_dist   17.5 (max    46)  eps=0.05    343s | dw=0.0098 depressed=45.7%
+
+==================================================================
+training: readout
+==================================================================
+  ep    1  eval_dist   15.4 (max    33)  eps=0.35      6s
+  ep   40  eval_dist   14.8 (max    24)  eps=0.33     27s
+  ep   80  eval_dist   15.3 (max    27)  eps=0.30     48s
+  ep  120  eval_dist   14.8 (max    26)  eps=0.28     70s
+  ep  160  eval_dist   13.2 (max    27)  eps=0.26     94s
+  ep  200  eval_dist   13.0 (max    21)  eps=0.23    113s
+  ep  240  eval_dist   13.2 (max    20)  eps=0.21    134s
+  ep  280  eval_dist   11.7 (max    18)  eps=0.19    155s
+  ep  320  eval_dist   13.5 (max    40)  eps=0.16    177s
+  ep  360  eval_dist   16.2 (max    31)  eps=0.14    198s
+  ep  400  eval_dist   11.8 (max    22)  eps=0.12    219s
+  ep  440  eval_dist   13.8 (max    34)  eps=0.09    241s
+  ep  480  eval_dist   13.8 (max    24)  eps=0.07    264s
+  ep  520  eval_dist   11.2 (max    20)  eps=0.05    283s
+  ep  560  eval_dist   12.8 (max    20)  eps=0.05    305s
+  ep  600  eval_dist   12.0 (max    19)  eps=0.05    328s
+
+wrote /Users/puneethrv/Auraspace/SmartFly/out/run2.json
+
+agent       final eval distance  vs random
+mb                         17.5  1.27x
+readout                    12.0  0.87x

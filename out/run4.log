@@ -1,0 +1,39 @@
+full connectome: 166,197 neurons, 10,237,254 signed edges, 10,520,377 structural edges
+calibrated gain=4.924 -> 9.56 Hz, synchrony 0.13, 30.6% of neurons active
+
+random-policy floor: mean distance 13.7, mean return -7.72
+
+==================================================================
+training: mb
+==================================================================
+plastic KC->MBON synapses: 44,042
+  ep    1  eval_dist   13.0 (max    25)  eps=0.35      3s | dw=0.0000 depressed=8.8%
+  ep   50  eval_dist   14.9 (max    32)  eps=0.31     18s | dw=0.0005 depressed=14.3%
+  ep  100  eval_dist   15.0 (max    34)  eps=0.26     33s | dw=0.0010 depressed=15.0%
+  ep  150  eval_dist   13.2 (max    33)  eps=0.22     48s | dw=0.0014 depressed=15.4%
+  ep  200  eval_dist   17.3 (max    44)  eps=0.17     63s | dw=0.0018 depressed=15.5%
+  ep  250  eval_dist   12.0 (max    23)  eps=0.13     77s | dw=0.0021 depressed=15.6%
+  ep  300  eval_dist   10.7 (max    27)  eps=0.09     93s | dw=0.0025 depressed=15.8%
+  ep  350  eval_dist   14.0 (max    29)  eps=0.05    106s | dw=0.0028 depressed=15.9%
+  ep  400  eval_dist   16.2 (max    35)  eps=0.05    121s | dw=0.0032 depressed=16.0%
+  saved checkpoint /Users/puneethrv/Auraspace/SmartFly/out/run4_mb.pkl
+
+==================================================================
+training: readout
+==================================================================
+  ep    1  eval_dist   14.7 (max    33)  eps=0.35      4s
+  ep   50  eval_dist   12.8 (max    26)  eps=0.31     16s
+  ep  100  eval_dist   12.0 (max    22)  eps=0.26     29s
+  ep  150  eval_dist   11.5 (max    18)  eps=0.22     42s
+  ep  200  eval_dist   12.1 (max    22)  eps=0.17     54s
+  ep  250  eval_dist   12.3 (max    27)  eps=0.13     67s
+  ep  300  eval_dist   11.5 (max    26)  eps=0.09     79s
+  ep  350  eval_dist   13.7 (max    30)  eps=0.05     92s
+  ep  400  eval_dist   14.2 (max    25)  eps=0.05    104s
+  saved checkpoint /Users/puneethrv/Auraspace/SmartFly/out/run4_readout.pkl
+
+wrote /Users/puneethrv/Auraspace/SmartFly/out/run4.json
+
+agent       final eval distance  vs random
+mb                         16.2  1.18x
+readout                    14.2  1.03x

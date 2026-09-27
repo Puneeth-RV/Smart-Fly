@@ -1,0 +1,756 @@
+<title>Fly at the Controls</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+  /* Deliberately single-theme: a specimen lit in a dark vitrine. Every colour
+     is stated explicitly so the page reads correctly on any host background. */
+  :root{
+    color-scheme: dark;
+    --ink:#0a0d12; --case:#11161e; --case-hi:#182029; --rule:#26313e;
+    --chitin:#d9922f; --chitin-dim:#8a5d1e; --neural:#e0559b; --rail:#47c8bd;
+    --text:#e9edf2; --muted:#8593a4; --faint:#5b6779;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--ink)}
+  body{
+    font-family:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;color:var(--text);
+    padding-inline:20px;padding-block:28px 40px;
+  }
+  .wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+  header{display:flex;flex-direction:column;gap:10px}
+  .eyebrow{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--chitin)}
+  h1{font-family:"Fraunces",Georgia,serif;font-weight:600;
+    font-size:clamp(30px,5.2vw,50px);line-height:1.02;margin:0;
+    text-wrap:balance;letter-spacing:-.015em}
+  .standfirst{margin:0;max-width:62ch;color:var(--muted);font-size:15px;line-height:1.6}
+
+  .specimen{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));
+    gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+  .specimen div{background:var(--case);padding:11px 13px}
+  .specimen dt{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--faint);margin:0 0 4px}
+  .specimen dd{margin:0;font-family:"IBM Plex Mono",monospace;font-size:15px;
+    font-variant-numeric:tabular-nums;color:var(--text)}
+  .specimen dd small{color:var(--muted);font-size:11px}
+
+  .stage{position:relative;background:#06080b;border:1px solid var(--rule);
+    border-radius:4px;overflow:hidden;aspect-ratio:16/10;min-height:360px}
+  @media (max-width:620px){ .stage{aspect-ratio:4/5} }
+  #gl{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+  #gl:active{cursor:grabbing}
+  /* Vignette, to sit the specimen in its case. */
+  .vig{position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(118% 84% at 50% 42%, transparent 38%, rgba(3,5,8,.62) 100%)}
+  .hint{position:absolute;left:12px;bottom:10px;font-family:"IBM Plex Mono",monospace;
+    font-size:10px;letter-spacing:.08em;color:var(--faint);pointer-events:none}
+  .action-chip{position:absolute;right:12px;top:12px;display:flex;align-items:center;gap:8px;
+    background:rgba(8,11,15,.8);border:1px solid var(--rule);border-radius:2px;
+    padding:7px 11px;font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.06em;
+    backdrop-filter:blur(6px)}
+  .action-chip b{color:var(--chitin);font-weight:500;min-width:52px;display:inline-block}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--neural)}
+  .loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--faint);letter-spacing:.1em}
+
+  .controls{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  button{font:inherit;font-size:13px;background:var(--case-hi);color:var(--text);
+    border:1px solid var(--rule);border-radius:2px;padding:8px 16px;cursor:pointer}
+  button:hover{border-color:var(--chitin-dim)}
+  button:focus-visible,input:focus-visible{outline:2px solid var(--chitin);outline-offset:2px}
+  input[type=range]{flex:1;min-width:180px;accent-color:var(--chitin)}
+  .tick{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);
+    font-variant-numeric:tabular-nums}
+
+  .panels{display:grid;grid-template-columns:1.55fr 1fr;gap:18px}
+  @media (max-width:760px){ .panels{grid-template-columns:1fr} }
+  .panel{background:var(--case);border:1px solid var(--rule);border-radius:4px;padding:16px 17px}
+  .panel h2{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.13em;
+    text-transform:uppercase;color:var(--faint);margin:0 0 14px;font-weight:500}
+  .chain{display:flex;flex-direction:column;gap:9px}
+  .row{display:grid;grid-template-columns:104px 1fr 44px;align-items:center;gap:10px}
+  .row span{font-size:12px;color:var(--muted)}
+  .row .n{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--text);
+    text-align:right;font-variant-numeric:tabular-nums}
+  .meter{height:7px;background:#0c1118;border-radius:1px;overflow:hidden}
+  .meter i{display:block;height:100%;background:var(--neural);width:0%;transition:width .09s linear}
+  .row.sense .meter i{background:var(--rail)}
+  .row.motor .meter i{background:var(--chitin)}
+  .eye-wrap{display:flex;flex-direction:column;gap:11px;align-items:center}
+  #retina{image-rendering:pixelated;width:100%;max-width:150px;height:auto;
+    border:1px solid var(--rule);background:#05070a;border-radius:2px}
+  .caption{font-size:11.5px;color:var(--faint);line-height:1.5;text-align:center;margin:0}
+  .note{border-left:2px solid var(--chitin-dim);padding:2px 0 2px 16px;color:var(--muted);
+    font-size:14px;line-height:1.65;max-width:68ch}
+  .note strong{color:var(--text);font-weight:600}
+  footer{color:var(--faint);font-size:11.5px;line-height:1.6;border-top:1px solid var(--rule);
+    padding-top:14px}
+  @media (prefers-reduced-motion:reduce){ .meter i{transition:none} }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">MaleCNS v1.0 · 28 Sep 2026</div>
+    <h1>Fly at the Controls</h1>
+    <p class="standfirst">
+      A complete <em>Drosophila</em> connectome, wired to a phone. The brain reads the
+      screen through 3,354 photoreceptors and swipes with its descending neurons.
+      Everything below is replayed from one real recording — the frames, the spikes
+      and the swipes all happened.
+    </p>
+  </header>
+
+  <dl class="specimen">
+    <div><dt>Neurons</dt><dd>166,197</dd></div>
+    <div><dt>Synapses</dt><dd>10.24 <small>M</small></dd></div>
+    <div><dt>Control rate</dt><dd id="s-fps">60.8 <small>fps</small></dd></div>
+    <div><dt>Plastic synapses</dt><dd>44,042</dd></div>
+    <div><dt>Retina</dt><dd>15 × 24</dd></div>
+  </dl>
+
+  <div class="stage">
+    <canvas id="gl"></canvas>
+    <div class="vig"></div>
+    <div class="action-chip"><span class="dot"></span>swipe <b id="s-act">—</b></div>
+    <div class="hint">drag to orbit · scroll to zoom</div>
+    <div class="loading" id="loading">preparing specimen…</div>
+  </div>
+
+  <div class="controls">
+    <button id="play" aria-label="Play or pause the recording">Pause</button>
+    <input id="scrub" type="range" min="0" max="119" value="0" step="1" aria-label="Frame">
+    <span class="tick"><span id="s-frame">1</span> / <span id="s-total">120</span></span>
+  </div>
+
+  <div class="panels">
+    <section class="panel">
+      <h2>Sensory → motor chain, measured live</h2>
+      <div class="chain" id="chain"></div>
+    </section>
+    <section class="panel eye-wrap">
+      <h2 style="align-self:flex-start">What the fly sees</h2>
+      <canvas id="retina" width="15" height="24"></canvas>
+      <p class="caption">The game reduced to the contrast retina the optic lobe is fed.
+        Near track fills more of the field, as under real perspective.</p>
+    </section>
+  </div>
+
+  <p class="note">
+    The brain is unmistakably alive — spikes propagate the full five stages and the
+    descending neurons pick a swipe every frame. It still plays badly, and measuring
+    why was the point. The correct move is <strong>59.7%</strong> decodable from the
+    retina and <strong>15.7%</strong> from the Kenyon cells: the signal is lost at
+    roughly 25–30% per synapse. Activity is easy to mistake for function, and that
+    test is the one missing from every other connectome-plays-a-game demo.
+  </p>
+
+  <footer>
+    Connectome: MaleCNS v1.0, Google Research &amp; HHMI Janelia, CC-BY.
+    Leaky integrate-and-fire dynamics over the real wiring, with transmitter-signed
+    weights and dopamine-gated plasticity restricted to Kenyon-cell→MBON synapses.
+    Captured over adb from Subway Surfers on an Android&nbsp;14 emulator.
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var LABEL = {
+    photoreceptor_R16:"photoreceptors", optic_lobe:"optic lobe",
+    visual_projection:"visual proj.",  central_brain:"central brain",
+    kenyon_cell:"Kenyon cells",        mbon:"MBON",
+    descending:"descending",           motor:"motor"
+  };
+  var SENSE={photoreceptor_R16:1,optic_lobe:1,visual_projection:1};
+  var MOTOR={descending:1,motor:1};
+
+  var scene, camera, renderer, phoneScreen, fly, root, clock;
+  var DATA=null, frame=0, playing=true, lastAdv=0, dist=7.2;
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------------------------------------------------- procedural texture */
+
+  // Equirectangular studio environment. Drives every reflection in the scene;
+  // without one, PBR chitin reads as flat plastic.
+  function envTexture(){
+    var c=document.createElement("canvas"); c.width=512; c.height=256;
+    var x=c.getContext("2d");
+    var sky=x.createLinearGradient(0,0,0,256);
+    sky.addColorStop(0,"#20303f"); sky.addColorStop(0.46,"#101820");
+    sky.addColorStop(0.54,"#0a0e13"); sky.addColorStop(1,"#05070a");
+    x.fillStyle=sky; x.fillRect(0,0,512,256);
+    // Two soft overhead sources, so highlights on the cuticle have shape.
+    function blob(cx,cy,r,col,a){
+      var g=x.createRadialGradient(cx,cy,0,cx,cy,r);
+      g.addColorStop(0,col); g.addColorStop(1,"rgba(0,0,0,0)");
+      x.globalAlpha=a; x.fillStyle=g; x.beginPath();
+      x.arc(cx,cy,r,0,6.283); x.fill(); x.globalAlpha=1;
+    }
+    blob(150,52,110,"#ffe9c8",0.95);
+    blob(370,74,86,"#8fd8ff",0.55);
+    blob(256,236,150,"#2a3a4a",0.5);
+    var t=new THREE.CanvasTexture(c);
+    t.mapping=THREE.EquirectangularReflectionMapping;
+    return t;
+  }
+
+  // Wing: alpha-shaped membrane with the veins Drosophila actually has.
+  function wingTexture(){
+    var W=512,H=200;
+    var c=document.createElement("canvas"); c.width=W; c.height=H;
+    var x=c.getContext("2d");
+    x.clearRect(0,0,W,H);
+    // Membrane silhouette — long, rounded at the tip, narrowing to the hinge.
+    x.beginPath();
+    x.moveTo(6,H*0.52);
+    x.bezierCurveTo(W*0.16,H*0.10, W*0.66,H*0.02, W*0.96,H*0.36);
+    x.bezierCurveTo(W*1.00,H*0.50, W*0.80,H*0.92, W*0.42,H*0.90);
+    x.bezierCurveTo(W*0.20,H*0.88, W*0.05,H*0.72, 6,H*0.52);
+    x.closePath();
+    var mem=x.createLinearGradient(0,0,W,H);
+    mem.addColorStop(0,"rgba(214,232,240,0.60)");
+    mem.addColorStop(0.5,"rgba(196,220,236,0.34)");
+    mem.addColorStop(1,"rgba(210,226,240,0.24)");
+    x.fillStyle=mem; x.fill();
+    x.save(); x.clip();
+    // Longitudinal veins fanning from the hinge, plus the two cross-veins.
+    x.lineCap="round";
+    var veins=[[0.50,0.30],[0.52,0.44],[0.54,0.58],[0.56,0.72],[0.58,0.84]];
+    veins.forEach(function(v,i){
+      x.beginPath();
+      x.moveTo(10,H*0.52);
+      x.bezierCurveTo(W*0.30,H*(0.52+(v[0]-0.52)*0.6), W*0.62,H*v[1], W*0.95,H*(v[1]+0.02));
+      x.strokeStyle="rgba(90,110,124,"+(0.5-i*0.05)+")";
+      x.lineWidth=2.4-i*0.25; x.stroke();
+    });
+    x.beginPath(); x.moveTo(W*0.54,H*0.40); x.lineTo(W*0.57,H*0.56);
+    x.strokeStyle="rgba(90,110,124,0.42)"; x.lineWidth=1.8; x.stroke();
+    x.beginPath(); x.moveTo(W*0.76,H*0.44); x.lineTo(W*0.79,H*0.64);
+    x.stroke();
+    // Fine corrugation across the membrane.
+    for(var i=0;i<70;i++){
+      var yy=H*(0.08+Math.random()*0.84), xx=W*(0.12+Math.random()*0.84);
+      x.beginPath(); x.moveTo(xx,yy); x.lineTo(xx+8+Math.random()*14, yy+(Math.random()-0.5)*5);
+      x.strokeStyle="rgba(180,205,220,0.10)"; x.lineWidth=1; x.stroke();
+    }
+    x.restore();
+    // Thickened leading edge (costa).
+    x.beginPath();
+    x.moveTo(6,H*0.52);
+    x.bezierCurveTo(W*0.16,H*0.10, W*0.66,H*0.02, W*0.96,H*0.36);
+    x.strokeStyle="rgba(78,96,110,0.65)"; x.lineWidth=3.4; x.stroke();
+    return new THREE.CanvasTexture(c);
+  }
+
+  /* ------------------------------------------------------------- materials */
+  var MAT={};
+  function buildMaterials(env){
+    MAT.cuticle = new THREE.MeshPhysicalMaterial({
+      color:0x8a6326, roughness:0.42, metalness:0.15,
+      clearcoat:0.7, clearcoatRoughness:0.35, envMap:env, envMapIntensity:1.15
+    });
+    MAT.thorax = new THREE.MeshPhysicalMaterial({
+      color:0x9c7330, roughness:0.5, metalness:0.12,
+      clearcoat:0.55, clearcoatRoughness:0.45, envMap:env, envMapIntensity:1.0
+    });
+    MAT.dark = new THREE.MeshPhysicalMaterial({
+      color:0x241a10, roughness:0.55, metalness:0.2,
+      clearcoat:0.4, envMap:env, envMapIntensity:0.8
+    });
+    MAT.limb = new THREE.MeshStandardMaterial({
+      color:0x3a2a18, roughness:0.62, metalness:0.15, envMap:env, envMapIntensity:0.7
+    });
+    MAT.bristle = new THREE.MeshStandardMaterial({
+      color:0x181008, roughness:0.85, metalness:0.05
+    });
+    // Compound eye: deep red with a strong specular coat, the way the live
+    // animal's eye catches light.
+    MAT.eye = new THREE.MeshPhysicalMaterial({
+      color:0x8e2410, roughness:0.30, metalness:0.05,
+      clearcoat:1.0, clearcoatRoughness:0.08,
+      envMap:env, envMapIntensity:1.5
+    });
+    MAT.omma = new THREE.MeshPhysicalMaterial({
+      color:0xc0391a, roughness:0.16, metalness:0.0,
+      clearcoat:1.0, clearcoatRoughness:0.05,
+      envMap:env, envMapIntensity:2.1
+    });
+  }
+
+  /* ------------------------------------------------------------------- fly */
+
+  // Tapered, segmented abdomen built as a lathe, which gives a far better
+  // silhouette than stacked spheres.
+  function abdomenGeometry(){
+    var pts=[], N=26;
+    for(var i=0;i<=N;i++){
+      var t=i/N;
+      // Fat just behind the thorax, tapering to a rounded tip.
+      var r=0.40*Math.sin(Math.PI*Math.pow(t,0.78))*(1.0-0.26*t)+0.012;
+      // Shallow segment ripples.
+      r*= 1 + 0.035*Math.sin(t*Math.PI*7);
+      pts.push(new THREE.Vector2(Math.max(r,0.008), -t*1.45));
+    }
+    var g=new THREE.LatheGeometry(pts, 30);
+    g.rotateX(Math.PI/2);
+    return g;
+  }
+
+  function scatterOnSphere(n){
+    // Fibonacci sphere: even coverage without clumping at the poles.
+    var pts=[], ga=Math.PI*(3-Math.sqrt(5));
+    for(var i=0;i<n;i++){
+      var y=1-(i/(n-1))*2, r=Math.sqrt(Math.max(0,1-y*y)), th=ga*i;
+      pts.push(new THREE.Vector3(Math.cos(th)*r, y, Math.sin(th)*r));
+    }
+    return pts;
+  }
+
+  function makeEye(side){
+    var g=new THREE.Group();
+    var R=0.25;
+    var base=new THREE.Mesh(new THREE.SphereGeometry(R,26,20), MAT.eye);
+    base.scale.set(0.86,1.12,0.96);
+    g.add(base);
+
+    // Individual ommatidia. This is the detail that makes a fly read as a fly,
+    // so they are real geometry rather than a texture.
+    var pts=scatterOnSphere(520);
+    var lens=new THREE.SphereGeometry(0.0175,6,5);
+    var inst=new THREE.InstancedMesh(lens, MAT.omma, pts.length);
+    var m=new THREE.Matrix4(), q=new THREE.Quaternion(), up=new THREE.Vector3(0,1,0);
+    var sc=new THREE.Vector3(1,1,1), pos=new THREE.Vector3();
+    var kept=0;
+    for(var i=0;i<pts.length;i++){
+      var p=pts[i];
+      // Keep the outward-facing cap only; the inner face is buried in the head.
+      if(p.x*side < -0.25) continue;
+      pos.set(p.x*R*0.86, p.y*R*1.12, p.z*R*0.96).multiplyScalar(1.035);
+      q.setFromUnitVectors(up, p.clone().normalize());
+      m.compose(pos,q,sc);
+      inst.setMatrixAt(kept++, m);
+    }
+    inst.count=kept;
+    inst.instanceMatrix.needsUpdate=true;
+    g.add(inst);
+    return g;
+  }
+
+  function bristleField(target, count, spread, scaleY){
+    var cone=new THREE.ConeGeometry(0.009,0.085,4);
+    cone.translate(0,0.042,0);
+    var inst=new THREE.InstancedMesh(cone, MAT.bristle, count);
+    var pts=scatterOnSphere(count*2);
+    var m=new THREE.Matrix4(), q=new THREE.Quaternion(), up=new THREE.Vector3(0,1,0);
+    var sc=new THREE.Vector3(), pos=new THREE.Vector3(), n=0;
+    for(var i=0;i<pts.length && n<count;i++){
+      var p=pts[i];
+      if(p.y < -0.15) continue;             // none underneath
+      pos.set(p.x*spread.x, p.y*spread.y, p.z*spread.z);
+      var dir=new THREE.Vector3(p.x,p.y*1.3,p.z).normalize();
+      q.setFromUnitVectors(up,dir);
+      var s=0.7+Math.random()*0.8;
+      sc.set(s, s*scaleY, s);
+      m.compose(pos,q,sc);
+      inst.setMatrixAt(n++, m);
+    }
+    inst.count=n; inst.instanceMatrix.needsUpdate=true;
+    target.add(inst);
+  }
+
+  function makeLeg(F,T,A,thick){
+    // Coxa → femur → tibia → tarsus, each on its own pivot.
+    var coxa=new THREE.Group();
+    function seg(len, r0, r1, mat){
+      var g=new THREE.CylinderGeometry(r0,r1,len,7);
+      g.translate(0,-len/2,0);
+      return new THREE.Mesh(g, mat);
+    }
+    coxa.add(seg(F, thick, thick*0.82, MAT.limb));
+    var knee=new THREE.Group(); knee.position.y=-F;
+    knee.add(seg(T, thick*0.8, thick*0.55, MAT.limb));
+    coxa.add(knee);
+    var ankle=new THREE.Group(); ankle.position.y=-T;
+    // Tarsus in five short segments, as in the animal.
+    for(var i=0;i<5;i++){
+      var L=A/5, s=seg(L*0.92, thick*0.4*(1-i*0.11), thick*0.33*(1-i*0.11), MAT.limb);
+      s.position.y=-L*i;
+      ankle.add(s);
+    }
+    knee.add(ankle);
+    coxa.userData={knee:knee, ankle:ankle};
+    return coxa;
+  }
+
+  function makeFly(env){
+    var f=new THREE.Group();
+
+    var abd=new THREE.Mesh(abdomenGeometry(), MAT.cuticle);
+    abd.position.set(0,0.02,-0.30); abd.castShadow=true;
+    f.add(abd);
+    // Dark tergite bands.
+    for(var b=0;b<5;b++){
+      var t=(b+1)/6;
+      var rr=0.40*Math.sin(Math.PI*Math.pow(t,0.78))*(1.0-0.26*t);
+      var ring=new THREE.Mesh(new THREE.TorusGeometry(rr*0.99,0.016,6,26), MAT.dark);
+      ring.rotation.x=Math.PI/2;
+      ring.position.set(0,0.02,-0.30-t*1.45);
+      ring.scale.set(1,1,0.86);
+      f.add(ring);
+    }
+
+    var thorax=new THREE.Mesh(new THREE.SphereGeometry(0.42,26,20), MAT.thorax);
+    thorax.scale.set(0.96,0.92,1.08); thorax.position.z=0.06;
+    thorax.castShadow=true;
+    f.add(thorax);
+    bristleField(thorax, 90, {x:0.40,y:0.39,z:0.45}, 1.5);
+    // Scutellum, the small shield at the back of the thorax.
+    var scut=new THREE.Mesh(new THREE.SphereGeometry(0.17,16,12), MAT.thorax);
+    scut.scale.set(1,0.55,0.8); scut.position.set(0,0.14,-0.26);
+    f.add(scut);
+
+    var head=new THREE.Group(); head.position.set(0,0.05,0.52);
+    var skull=new THREE.Mesh(new THREE.SphereGeometry(0.28,24,18), MAT.thorax);
+    skull.scale.set(0.98,0.94,0.74); skull.castShadow=true;
+    head.add(skull);
+    [-1,1].forEach(function(s){
+      var e=makeEye(s); e.position.set(0.175*s,0.03,0.02);
+      head.add(e);
+    });
+    // Three ocelli on the vertex.
+    [[0,0.20,-0.02],[-0.055,0.185,0.03],[0.055,0.185,0.03]].forEach(function(p){
+      var o=new THREE.Mesh(new THREE.SphereGeometry(0.019,8,6), MAT.omma);
+      o.position.set(p[0],p[1],p[2]); head.add(o);
+    });
+    // Antennae with arista, and a short proboscis.
+    [-1,1].forEach(function(s){
+      var a=new THREE.Group(); a.position.set(0.06*s,-0.02,0.20);
+      var seg=new THREE.Mesh(new THREE.SphereGeometry(0.035,10,8), MAT.dark);
+      seg.scale.set(0.8,0.9,1.2); a.add(seg);
+      var ar=new THREE.Mesh(new THREE.CylinderGeometry(0.004,0.002,0.17,4), MAT.bristle);
+      ar.position.set(0.02*s,0.05,0.07); ar.rotation.set(-0.7,0,-0.5*s);
+      a.add(ar);
+      head.add(a);
+    });
+    var prob=new THREE.Mesh(new THREE.SphereGeometry(0.075,12,10), MAT.dark);
+    prob.scale.set(0.8,0.7,1.0); prob.position.set(0,-0.17,0.16);
+    head.add(prob);
+    f.add(head);
+
+    // Wings.
+    var wingTex=wingTexture();
+    var wingMat=new THREE.MeshPhysicalMaterial({
+      map:wingTex, transparent:true, opacity:0.92, side:THREE.DoubleSide,
+      roughness:0.06, metalness:0.0, clearcoat:1.0, clearcoatRoughness:0.04,
+      envMap:env, envMapIntensity:2.4, depthWrite:false
+    });
+    var wings=[];
+    [-1,1].forEach(function(s){
+      var wg=new THREE.Group();
+      var geo=new THREE.PlaneGeometry(1.62,0.62,12,4);
+      geo.translate(0.81,0,0);
+      var w=new THREE.Mesh(geo, wingMat);
+      w.rotation.x=Math.PI/2;
+      wg.add(w);
+      wg.position.set(0.15*s,0.28,-0.04);
+      wg.rotation.y = s>0 ? -2.42 : 2.42;
+      wg.rotation.z = -0.10;
+      wg.scale.x = s;
+      f.add(wg); wings.push(wg);
+    });
+    // Halteres — the vestigial hind wings a fly balances with.
+    [-1,1].forEach(function(s){
+      var h=new THREE.Group(); h.position.set(0.16*s,0.02,-0.26);
+      var st=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.13,5), MAT.limb);
+      st.position.y=-0.065; h.add(st);
+      var kn=new THREE.Mesh(new THREE.SphereGeometry(0.045,10,8), MAT.cuticle);
+      kn.position.y=-0.14; h.add(kn);
+      h.rotation.z=0.5*s; f.add(h);
+    });
+
+    // Six legs. Fore pair rests on the glass and does the swiping.
+    var front=[], legs=[];
+    var spec=[
+      {x:0.24,y:-0.12,z:0.34, F:0.40,T:0.52,A:0.30, rz:0.42, rx:-0.62, front:true},
+      {x:0.30,y:-0.14,z:-0.02,F:0.44,T:0.58,A:0.32, rz:0.92, rx:0.10},
+      {x:0.27,y:-0.14,z:-0.40,F:0.46,T:0.64,A:0.34, rz:1.18, rx:0.42}
+    ];
+    spec.forEach(function(p){
+      [-1,1].forEach(function(s){
+        var L=makeLeg(p.F,p.T,p.A,0.036);
+        L.position.set(p.x*s,p.y,p.z);
+        L.rotation.z=p.rz*s; L.rotation.x=p.rx;
+        L.userData.side=s;
+        L.userData.rest={z:L.rotation.z, x:L.rotation.x};
+        L.userData.knee.rotation.x=p.front?0.95:0.75;
+        L.userData.ankle.rotation.x=p.front?0.5:0.85;
+        f.add(L); legs.push(L);
+        if(p.front) front.push(L);
+      });
+    });
+
+    f.userData={wings:wings, legs:legs, front:front, head:head};
+    return f;
+  }
+
+  /* ----------------------------------------------------------------- phone */
+  function roundedRect(w,h,r){
+    var s=new THREE.Shape();
+    s.moveTo(-w/2+r,-h/2);
+    s.lineTo(w/2-r,-h/2); s.quadraticCurveTo(w/2,-h/2,w/2,-h/2+r);
+    s.lineTo(w/2,h/2-r);  s.quadraticCurveTo(w/2,h/2,w/2-r,h/2);
+    s.lineTo(-w/2+r,h/2); s.quadraticCurveTo(-w/2,h/2,-w/2,h/2-r);
+    s.lineTo(-w/2,-h/2+r);s.quadraticCurveTo(-w/2,-h/2,-w/2+r,-h/2);
+    return s;
+  }
+
+  function makePhone(tex, env){
+    var g=new THREE.Group();
+    var W=1.62, H=W*(288/132), D=0.10;
+
+    var bodyGeo=new THREE.ExtrudeGeometry(roundedRect(W+0.12,H+0.12,0.17),
+      {depth:D, bevelEnabled:true, bevelSize:0.02, bevelThickness:0.02, bevelSegments:3, curveSegments:12});
+    bodyGeo.translate(0,0,-D/2);
+    var body=new THREE.Mesh(bodyGeo, new THREE.MeshPhysicalMaterial({
+      color:0x171c24, roughness:0.28, metalness:0.9, envMap:env, envMapIntensity:1.2,
+      clearcoat:0.5, clearcoatRoughness:0.2
+    }));
+    body.castShadow=true; body.receiveShadow=true;
+    g.add(body);
+
+    var glassGeo=new THREE.ExtrudeGeometry(roundedRect(W+0.05,H+0.05,0.14),
+      {depth:0.012, bevelEnabled:false, curveSegments:12});
+    glassGeo.translate(0,0,D/2-0.004);
+    g.add(new THREE.Mesh(glassGeo, new THREE.MeshPhysicalMaterial({
+      color:0x05070a, roughness:0.08, metalness:0.0, clearcoat:1.0,
+      clearcoatRoughness:0.04, envMap:env, envMapIntensity:1.8
+    })));
+
+    var screen=new THREE.Mesh(new THREE.PlaneGeometry(W,H),
+      new THREE.MeshBasicMaterial({map:tex, toneMapped:false}));
+    screen.position.z=D/2+0.011;
+    g.add(screen);
+
+    var glow=new THREE.PointLight(0x9ecbff, 1.5, 6, 2);
+    glow.position.set(0,0.4,1.0);
+    g.add(glow);
+
+    g.userData.screen=screen;
+    return g;
+  }
+
+  /* ------------------------------------------------------------------ init */
+  function init(tex){
+    var canvas=document.getElementById("gl");
+    renderer=new THREE.WebGLRenderer({canvas:canvas, antialias:true, alpha:true});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+    renderer.outputEncoding=THREE.sRGBEncoding;
+    renderer.toneMapping=THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure=1.08;
+    renderer.shadowMap.enabled=true;
+    renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+
+    scene=new THREE.Scene();
+    camera=new THREE.PerspectiveCamera(34,1,0.1,100);
+
+    var pmrem=new THREE.PMREMGenerator(renderer);
+    var env=pmrem.fromEquirectangular(envTexture()).texture;
+    scene.environment=env;
+    buildMaterials(env);
+
+    scene.add(new THREE.AmbientLight(0x35435a, 0.55));
+    var key=new THREE.DirectionalLight(0xffdca8, 2.1);
+    key.position.set(3.4,6.0,4.2);
+    key.castShadow=true;
+    key.shadow.mapSize.set(1024,1024);
+    key.shadow.camera.near=1; key.shadow.camera.far=22;
+    key.shadow.camera.left=-5; key.shadow.camera.right=5;
+    key.shadow.camera.top=5; key.shadow.camera.bottom=-5;
+    key.shadow.bias=-0.0012; key.shadow.radius=3;
+    scene.add(key);
+    var rim=new THREE.DirectionalLight(0x74d6ff,1.1);
+    rim.position.set(-4.5,2.0,-3.6); scene.add(rim);
+    var fill=new THREE.DirectionalLight(0xffffff,0.28);
+    fill.position.set(0,-3,4); scene.add(fill);
+
+    root=new THREE.Group(); root.rotation.x=-0.20; scene.add(root);
+
+    // Desk the phone lies on, so shadows have somewhere to land.
+    var desk=new THREE.Mesh(new THREE.PlaneGeometry(26,26),
+      new THREE.MeshStandardMaterial({color:0x0d1219, roughness:0.86, metalness:0.05,
+        envMap:env, envMapIntensity:0.35}));
+    desk.rotation.x=-Math.PI/2; desk.position.y=-1.66; desk.receiveShadow=true;
+    root.add(desk);
+
+    var phone=makePhone(tex, env);
+    phone.rotation.x=-Math.PI/2+0.30;
+    phone.position.set(0,-1.60,0.25);
+    root.add(phone);
+    phoneScreen=phone.userData.screen;
+
+    fly=makeFly(env);
+    fly.scale.setScalar(0.88);
+    fly.position.set(0,-1.02,0.95);
+    fly.rotation.x=0.30;
+    root.add(fly);
+
+    // Orbit + zoom, hand-written so the page needs no extra library.
+    var drag=false,px=0,py=0,yaw=0.32,pitch=0;
+    root.rotation.y=yaw;
+    function down(e){drag=true;var p=e.touches?e.touches[0]:e;px=p.clientX;py=p.clientY;}
+    function move(e){
+      if(!drag) return;
+      var p=e.touches?e.touches[0]:e;
+      yaw+=(p.clientX-px)*0.007; pitch+=(p.clientY-py)*0.005;
+      pitch=Math.max(-0.42,Math.min(0.62,pitch));
+      px=p.clientX; py=p.clientY;
+      root.rotation.y=yaw; root.rotation.x=-0.20+pitch;
+      if(e.cancelable) e.preventDefault();
+    }
+    function up(){drag=false;}
+    canvas.addEventListener("mousedown",down);
+    canvas.addEventListener("touchstart",down,{passive:true});
+    window.addEventListener("mousemove",move);
+    window.addEventListener("touchmove",move,{passive:false});
+    window.addEventListener("mouseup",up);
+    window.addEventListener("touchend",up);
+    canvas.addEventListener("wheel",function(e){
+      dist=Math.max(4.2,Math.min(12,dist+e.deltaY*0.0035));
+      e.preventDefault();
+    },{passive:false});
+
+    clock=new THREE.Clock();
+    resize(); window.addEventListener("resize",resize);
+    document.getElementById("loading").hidden=true;
+    renderer.setAnimationLoop(tick);
+  }
+
+  function resize(){
+    var c=document.getElementById("gl"), w=c.clientWidth, h=c.clientHeight;
+    if(!w||!h) return;
+    renderer.setSize(w,h,false);
+    camera.aspect=w/h; camera.updateProjectionMatrix();
+  }
+
+  /* -------------------------------------------------------------- playback */
+  function showFrame(i){
+    if(!DATA) return;
+    var f=DATA.frames[i], cols=DATA.cols, rows=Math.ceil(DATA.n/cols);
+    phoneScreen.material.map.offset.set((i%cols)/cols, 1-(Math.floor(i/cols)+1)/rows);
+    document.getElementById("s-act").textContent=DATA.actions[f.a];
+    document.getElementById("s-frame").textContent=(i+1);
+    DATA.stages.forEach(function(k){
+      var v=f.act[k]||0, el=document.getElementById("m-"+k);
+      if(el){
+        el.style.width=(v*100).toFixed(1)+"%";
+        document.getElementById("v-"+k).textContent=(v*100).toFixed(1)+"%";
+      }
+    });
+    drawRetina(f.ret);
+  }
+
+  function drawRetina(s){
+    var ctx=document.getElementById("retina").getContext("2d");
+    var img=ctx.createImageData(DATA.retina_w,DATA.retina_h);
+    for(var p=0;p<s.length;p++){
+      var v=(+s[p])/9;
+      img.data[p*4]  =Math.round(18+v*206);
+      img.data[p*4+1]=Math.round(10+v*75);
+      img.data[p*4+2]=Math.round(22+v*145);
+      img.data[p*4+3]=255;
+    }
+    ctx.putImageData(img,0,0);
+  }
+
+  function animateFly(t,f){
+    var d=fly.userData;
+    // Wingbeat. Real Drosophila beat near 200Hz; slowed so it reads as motion.
+    var beat=Math.sin(t*38)*0.46, flick=Math.sin(t*38+1.2)*0.10;
+    d.wings[0].rotation.z=-0.10+beat; d.wings[0].rotation.x=flick;
+    d.wings[1].rotation.z=-0.10-beat; d.wings[1].rotation.x=-flick;
+    // Idle body motion and a periodic head turn.
+    fly.position.y=-1.02+Math.sin(t*1.9)*0.016;
+    fly.rotation.z=Math.sin(t*0.7)*0.02;
+    d.head.rotation.y=Math.sin(t*0.53)*0.16;
+    d.head.rotation.x=Math.sin(t*0.81)*0.07;
+
+    // Fore legs perform the swipe actually dispatched on this frame.
+    var act=f?f.a:0, ph=(t*5)%1, reach=Math.sin(ph*Math.PI);
+    d.front.forEach(function(L){
+      var s=L.userData.side, r=L.userData.rest, dz=0, dx=0, kn=0.95;
+      if(act===1 && s<0){ dz=-0.55*reach; kn=0.95-0.3*reach; }
+      else if(act===2 && s>0){ dz=0.55*reach; kn=0.95-0.3*reach; }
+      else if(act===3){ dx=-0.48*reach; kn=0.95+0.35*reach; }
+      else if(act===4){ dx=0.44*reach; kn=0.95-0.25*reach; }
+      else { kn=0.95+Math.sin(t*2.2+s)*0.05; }
+      L.rotation.z=r.z+dz*s*-1;
+      L.rotation.x=r.x+dx;
+      L.userData.knee.rotation.x=kn;
+    });
+    // Middle and hind legs shift their weight slightly.
+    for(var i=2;i<d.legs.length;i++){
+      var L2=d.legs[i];
+      L2.rotation.x=L2.userData.rest.x+Math.sin(t*1.6+i)*0.035;
+    }
+  }
+
+  function tick(){
+    var t=clock.getElapsedTime();
+    camera.position.set(0, 1.05, dist);
+    camera.lookAt(0,-0.35,0);
+    if(DATA){
+      if(playing && t-lastAdv>1/15){
+        lastAdv=t;
+        frame=(frame+1)%DATA.n;
+        document.getElementById("scrub").value=frame;
+        showFrame(frame);
+      }
+      animateFly(t, DATA.frames[frame]);
+    }
+    renderer.render(scene,camera);
+  }
+
+  /* ------------------------------------------------------------------ boot */
+  function buildChain(){
+    var host=document.getElementById("chain");
+    DATA.stages.forEach(function(k){
+      var cls=SENSE[k]?" sense":(MOTOR[k]?" motor":"");
+      var row=document.createElement("div");
+      row.className="row"+cls;
+      row.innerHTML='<span>'+LABEL[k]+'</span>'+
+        '<div class="meter"><i id="m-'+k+'"></i></div>'+
+        '<div class="n" id="v-'+k+'">0%</div>';
+      row.firstChild.title=DATA.neurons[k].toLocaleString()+" neurons";
+      host.appendChild(row);
+    });
+  }
+
+  fetch("scene.json").then(function(r){return r.json();}).then(function(d){
+    DATA=d;
+    document.getElementById("s-total").textContent=d.n;
+    document.getElementById("scrub").max=d.n-1;
+    document.getElementById("s-fps").innerHTML=d.fps_measured+' <small>fps</small>';
+    buildChain();
+
+    var tex=new THREE.TextureLoader().load("frames.jpg", function(){ showFrame(0); });
+    tex.minFilter=THREE.LinearFilter; tex.magFilter=THREE.LinearFilter;
+    tex.generateMipmaps=false; tex.encoding=THREE.sRGBEncoding;
+    tex.repeat.set(1/d.cols, 1/Math.ceil(d.n/d.cols));
+
+    init(tex);
+    if(reduced){ playing=false; document.getElementById("play").textContent="Play"; }
+
+    document.getElementById("play").addEventListener("click",function(){
+      playing=!playing; this.textContent=playing?"Pause":"Play";
+    });
+    document.getElementById("scrub").addEventListener("input",function(){
+      playing=false; document.getElementById("play").textContent="Play";
+      frame=+this.value; showFrame(frame);
+    });
+  });
+})();
+</script>

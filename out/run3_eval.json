@@ -1,0 +1,24 @@
+{
+  "random": {
+    "mean": 13.795,
+    "ci": [
+      12.905,
+      14.745124999999998
+    ],
+    "median": 12.0,
+    "max": 50.0,
+    "ratio_vs_random": 1.0,
+    "p_vs_random": null
+  },
+  "untrained": {
+    "mean": 13.09,
+    "ci": [
+      12.38,
+      13.845
+    ],
+    "median": 12.0,
+    "max": 38.0,
+    "ratio_vs_random": 0.9488945270025372,
+    "p_vs_random": 0.24973751312434378
+  }
+}

@@ -1,0 +1,167 @@
+[
+  {
+    "pre": "photoreceptor_R16",
+    "post": "optic_lobe",
+    "direct": true,
+    "synapses": 242275.0,
+    "n_pre_used": 3342,
+    "n_post_used": 2791,
+    "pre_size": 3354,
+    "post_size": 89389,
+    "hops": 0
+  },
+  {
+    "pre": "optic_lobe",
+    "post": "visual_projection",
+    "direct": true,
+    "synapses": 6299357.0,
+    "n_pre_used": 66203,
+    "n_post_used": 9182,
+    "pre_size": 89389,
+    "post_size": 9200,
+    "hops": 0
+  },
+  {
+    "pre": "visual_projection",
+    "post": "central_brain",
+    "direct": true,
+    "synapses": 3482796.0,
+    "n_pre_used": 8578,
+    "n_post_used": 13247,
+    "pre_size": 9200,
+    "post_size": 32164,
+    "hops": 0
+  },
+  {
+    "pre": "central_brain",
+    "post": "kenyon_cell",
+    "direct": true,
+    "synapses": 1246569.0,
+    "n_pre_used": 4949,
+    "n_post_used": 4064,
+    "pre_size": 32164,
+    "post_size": 4064,
+    "hops": 0
+  },
+  {
+    "pre": "kenyon_cell",
+    "post": "mbon",
+    "direct": true,
+    "synapses": 439429.0,
+    "n_pre_used": 4062,
+    "n_post_used": 96,
+    "pre_size": 4064,
+    "post_size": 97,
+    "hops": 0
+  },
+  {
+    "pre": "mbon",
+    "post": "central_brain",
+    "direct": true,
+    "synapses": 226932.0,
+    "n_pre_used": 97,
+    "n_post_used": 5566,
+    "pre_size": 97,
+    "post_size": 32164,
+    "hops": 0
+  },
+  {
+    "pre": "central_brain",
+    "post": "descending",
+    "direct": true,
+    "synapses": 2528400.0,
+    "n_pre_used": 15495,
+    "n_post_used": 1302,
+    "pre_size": 32164,
+    "post_size": 1314,
+    "hops": 0
+  },
+  {
+    "pre": "descending",
+    "post": "motor",
+    "direct": true,
+    "synapses": 327332.0,
+    "n_pre_used": 1076,
+    "n_post_used": 761,
+    "pre_size": 1314,
+    "post_size": 814,
+    "hops": 0
+  },
+  {
+    "pre": "descending",
+    "post": "vnc_intrinsic",
+    "direct": true,
+    "synapses": 1553983.0,
+    "n_pre_used": 1304,
+    "n_post_used": 11636,
+    "pre_size": 1314,
+    "post_size": 13150,
+    "hops": 0
+  },
+  {
+    "pre": "vnc_intrinsic",
+    "post": "motor",
+    "direct": true,
+    "synapses": 2130012.0,
+    "n_pre_used": 9656,
+    "n_post_used": 703,
+    "pre_size": 13150,
+    "post_size": 814,
+    "hops": 0
+  },
+  {
+    "pre": "dan_pam",
+    "post": "mbon",
+    "direct": true,
+    "synapses": 27090.0,
+    "n_pre_used": 314,
+    "n_post_used": 49,
+    "pre_size": 316,
+    "post_size": 97,
+    "hops": 0
+  },
+  {
+    "pre": "dan_ppl1",
+    "post": "mbon",
+    "direct": true,
+    "synapses": 10819.0,
+    "n_pre_used": 16,
+    "n_post_used": 81,
+    "pre_size": 16,
+    "post_size": 97,
+    "hops": 0
+  },
+  {
+    "pre": "dan_pam",
+    "post": "kenyon_cell",
+    "direct": true,
+    "synapses": 52996.0,
+    "n_pre_used": 312,
+    "n_post_used": 3326,
+    "pre_size": 316,
+    "post_size": 4064,
+    "hops": 0
+  },
+  {
+    "pre": "mbon",
+    "post": "descending",
+    "direct": true,
+    "synapses": 4073.0,
+    "n_pre_used": 34,
+    "n_post_used": 106,
+    "pre_size": 97,
+    "post_size": 1314,
+    "hops": 0
+  },
+  {
+    "pre": "mbon",
+    "post": "motor",
+    "direct": false,
+    "synapses": 0.0,
+    "n_pre_used": 0,
+    "n_post_used": 0,
+    "pre_size": 97,
+    "post_size": 814,
+    "hops": 2
+  }
+]

@@ -1,0 +1,33 @@
+full connectome: 166,197 neurons, 10,237,254 signed edges, 10,520,377 structural edges
+calibrated gain=1.194 -> 6.51 Hz, synchrony 0.29, 71.0% of neurons active
+
+random-policy floor: mean distance 13.7, mean return -7.72
+
+==================================================================
+training: mb
+==================================================================
+plastic KC->MBON synapses: 44,042
+  ep    1  eval_dist   12.9 (max    30)  eps=0.35      6s | dw=0.0000 depressed=35.0%
+  ep   50  eval_dist   13.1 (max    22)  eps=0.33     30s | dw=0.0011 depressed=46.1%
+  ep  100  eval_dist   13.1 (max    19)  eps=0.31     56s | dw=0.0024 depressed=46.2%
+  ep  150  eval_dist   10.5 (max    14)  eps=0.28     81s | dw=0.0035 depressed=46.3%
+  ep  200  eval_dist   12.6 (max    17)  eps=0.26    107s | dw=0.0045 depressed=46.4%
+  ep  250  eval_dist   13.9 (max    26)  eps=0.24    136s | dw=0.0054 depressed=46.5%
+  ep  300  eval_dist   11.9 (max    31)  eps=0.22    163s | dw=0.0063 depressed=46.6%
+  ep  350  eval_dist   10.9 (max    18)  eps=0.20    193s | dw=0.0071 depressed=46.6%
+  ep  400  eval_dist   15.7 (max    34)  eps=0.17    231s | dw=0.0079 depressed=46.5%
+  ep  450  eval_dist   12.1 (max    18)  eps=0.15    265s | dw=0.0086 depressed=46.4%
+  ep  500  eval_dist   12.9 (max    24)  eps=0.13    294s | dw=0.0093 depressed=46.4%
+  ep  550  eval_dist   12.9 (max    17)  eps=0.11    325s | dw=0.0100 depressed=46.3%
+  ep  600  eval_dist   13.7 (max    28)  eps=0.09    361s | dw=0.0106 depressed=46.1%
+  ep  650  eval_dist   12.0 (max    20)  eps=0.07    394s | dw=0.0112 depressed=46.3%
+  ep  700  eval_dist   11.8 (max    17)  eps=0.05    427s | dw=0.0119 depressed=45.9%
+  ep  750  eval_dist   12.3 (max    23)  eps=0.05    466s | dw=0.0124 depressed=46.0%
+  ep  800  eval_dist   11.7 (max    20)  eps=0.05    496s | dw=0.0130 depressed=45.9%
+Traceback (most recent call last):
+  File "/Users/puneethrv/Auraspace/SmartFly/src/train/train.py", line 233, in <module>
+    main()
+  File "/Users/puneethrv/Auraspace/SmartFly/src/train/train.py", line 219, in main
+    fly.save(ckpt)
+    ^^^^^^^^
+AttributeError: 'FlyAgent' object has no attribute 'save'

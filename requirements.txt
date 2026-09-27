@@ -1,0 +1,8 @@
+# Python 3.12
+numpy>=2.0
+scipy>=1.14
+pandas>=2.2
+pyarrow>=17
+torch>=2.4
+matplotlib>=3.9
+pillow>=10
