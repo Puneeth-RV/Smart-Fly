@@ -182,7 +182,7 @@
     function laneX(lane, hw) { return cx + (lane - 1) * (hw * 0.62); }
 
     // Rails.
-    ctx.strokeStyle = "rgba(220,220,230,.55)"; ctx.lineWidth = Math.max(1, W * 0.006);
+    ctx.strokeStyle = "rgba(226,228,236,.62)"; ctx.lineWidth = Math.max(2, W * 0.008);
     [-1, 0, 1].forEach(function (off) {
       ctx.beginPath();
       for (var d = 0; d <= 22; d++) {
@@ -191,11 +191,14 @@
       }
       ctx.stroke();
     });
-    // Sleepers.
-    ctx.strokeStyle = "rgba(70,48,34,.75)";
-    for (var d2 = 0; d2 < 22; d2 += 1) {
+    // Sleepers. Only the near ones are drawn: beyond about eight depths they
+    // converge to within a pixel of each other and become an aliasing source
+    // rather than detail, and they fade out instead of stopping abruptly.
+    for (var d2 = 0; d2 < 9; d2 += 1) {
       var p2 = proj(d2);
-      ctx.lineWidth = Math.max(1, (1 - d2 / 22) * W * 0.012);
+      var fade = 1 - d2 / 9;
+      ctx.strokeStyle = "rgba(70,48,34," + (0.72 * fade).toFixed(3) + ")";
+      ctx.lineWidth = Math.max(1.6, fade * W * 0.016);
       ctx.beginPath();
       ctx.moveTo(cx - p2[1] * 0.95, p2[0]); ctx.lineTo(cx + p2[1] * 0.95, p2[0]);
       ctx.stroke();

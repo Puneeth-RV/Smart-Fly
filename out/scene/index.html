@@ -1,87 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fly at the Controls</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
 
 <style>
-  :root{ color-scheme: dark; --ink:#0a0e14; --text:#eef2f6; --muted:#b6c2d0;
-         --chitin:#d9922f; --live:#4ade80; --rule:rgba(255,255,255,.14); }
+  /* Restrained on purpose. The scene is the thing; the type sits at the edges
+     and stays out of it. No panels, no translucency, no glow -- a caption on a
+     plate, not a dashboard. */
+  [hidden]{display:none!important}
+  img{max-width:100%}
+  :root{
+    color-scheme: dark;
+    --ink:#07090c;
+    --paper:#e8e6e1;        /* warm off-white, the only light value */
+    --dim:#8d8f93;
+    --faint:#5a5d62;
+    --line:rgba(232,230,225,.18);
+  }
   *{box-sizing:border-box}
-  html,body{height:100%;margin:0;background:var(--ink);overflow:hidden}
-  body{font-family:"IBM Plex Mono",ui-monospace,monospace;color:var(--text)}
+  html,body{height:100%;margin:0;background:var(--ink)}
+  body{
+    font-family:ui-sans-serif,-apple-system,"Helvetica Neue",Arial,sans-serif;
+    color:var(--paper);
+    -webkit-font-smoothing:antialiased;
+  }
   #gl{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
   #gl:active{cursor:grabbing}
 
-  .ui{position:fixed;inset:0;pointer-events:none;
-      padding:calc(env(safe-area-inset-top,0px) + 18px) 20px
-              calc(env(safe-area-inset-bottom,0px) + 18px);
-      display:flex;flex-direction:column;justify-content:space-between;
-      transition:opacity .35s ease}
+  .ui{
+    position:fixed;inset:0;pointer-events:none;
+    padding:calc(env(safe-area-inset-top,0px) + 34px) 38px
+            calc(env(safe-area-inset-bottom,0px) + 28px);
+    display:flex;flex-direction:column;justify-content:space-between;
+    transition:opacity .4s ease;
+  }
   .ui.hidden{opacity:0}
-  .title{max-width:min(48ch,72vw)}
-  .title h1{font-family:"Fraunces",Georgia,serif;font-weight:600;
-    font-size:clamp(22px,3.4vw,38px);line-height:1.04;margin:0 0 7px;
-    letter-spacing:-.015em;text-shadow:0 2px 24px rgba(0,0,0,.85)}
-  .title p{margin:0;font-size:12.5px;line-height:1.6;color:var(--muted);
-    text-shadow:0 1px 14px rgba(0,0,0,.9)}
-  .title b{color:var(--chitin);font-weight:500}
-  .livetag{display:inline-flex;align-items:center;gap:6px;color:var(--live);
-    font-size:11px;letter-spacing:.12em;margin-bottom:8px}
-  .livedot{width:7px;height:7px;border-radius:50%;background:var(--live);
-    box-shadow:0 0 10px var(--live);animation:pulse 1.6s ease-in-out infinite}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 
-  .bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;pointer-events:auto}
-  button{font:inherit;font-size:12px;letter-spacing:.04em;color:var(--text);
-    background:rgba(12,16,22,.68);border:1px solid var(--rule);border-radius:3px;
-    padding:8px 14px;cursor:pointer;backdrop-filter:blur(10px)}
-  button:hover{border-color:var(--chitin)}
-  button:focus-visible{outline:2px solid var(--chitin);outline-offset:2px}
-  .read{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);
-    background:rgba(12,16,22,.6);border:1px solid var(--rule);border-radius:3px;
-    padding:8px 13px;backdrop-filter:blur(10px);font-variant-numeric:tabular-nums}
-  .read b{color:var(--chitin);font-weight:500}
-  .spacer{flex:1}
-  .hintkey{font-size:10.5px;color:#64748b}
+  h1{
+    font-family:"Newsreader",Georgia,"Times New Roman",serif;
+    font-weight:400;font-size:clamp(30px,4.6vw,56px);line-height:1;
+    margin:0;letter-spacing:-.012em;
+  }
+  h1 em{font-style:italic;font-weight:400}
+  .sub{
+    margin:14px 0 0;max-width:38ch;font-size:13px;line-height:1.65;
+    color:var(--dim);font-weight:400;
+  }
+  .sub i{font-family:"Newsreader",Georgia,serif;font-style:italic;color:var(--paper)}
 
-  .boot{position:fixed;inset:0;display:flex;flex-direction:column;gap:14px;
-    align-items:center;justify-content:center;background:var(--ink);text-align:center;
-    padding-inline:20px}
-  .boot .b1{font-size:11px;letter-spacing:.18em;color:#8593a4}
-  .boot .b2{font-size:11px;color:#55606f;max-width:44ch;line-height:1.6}
-  .track{width:min(260px,70vw);height:2px;background:#1b2430;overflow:hidden}
-  .track i{display:block;height:100%;width:0;background:var(--chitin);transition:width .3s}
-  @media (max-width:560px){ .title p{display:none} }
+  /* Figures: baseline row, hairline above, no containers. */
+  .figures{display:flex;gap:40px;flex-wrap:wrap;align-items:baseline;
+           padding-top:14px;border-top:1px solid var(--line);margin-bottom:22px}
+  .fig{display:flex;flex-direction:column;gap:5px}
+  .fig span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .fig b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+         font-weight:400;font-size:19px;color:var(--paper);
+         font-variant-numeric:tabular-nums}
+
+  .foot{display:flex;align-items:flex-end;justify-content:space-between;gap:30px}
+  .controls{display:flex;gap:26px;pointer-events:auto}
+  button{
+    font:inherit;font-size:12.5px;color:var(--dim);background:none;border:0;
+    padding:0 0 3px;cursor:pointer;border-bottom:1px solid transparent;
+  }
+  button:hover{color:var(--paper);border-bottom-color:var(--paper)}
+  button:focus-visible{outline:none;color:var(--paper);border-bottom-color:var(--paper)}
+  .meta{font-size:10.5px;color:var(--faint);line-height:1.7;text-align:right;
+        max-width:34ch;pointer-events:auto}
+  .meta a{color:var(--dim);text-decoration:none;border-bottom:1px solid var(--line)}
+  .meta a:hover{color:var(--paper)}
+
+  .boot{
+    position:fixed;inset:0;display:flex;flex-direction:column;
+    align-items:flex-start;justify-content:flex-end;background:var(--ink);
+    padding:0 38px calc(env(safe-area-inset-bottom,0px) + 34px);
+  }
+  .boot h2{font-family:"Newsreader",Georgia,serif;font-weight:400;
+           font-size:clamp(26px,4vw,44px);margin:0 0 16px;letter-spacing:-.012em}
+  .boot p{margin:0;font-size:12px;color:var(--faint);max-width:40ch;line-height:1.65}
+  .rule{width:100%;max-width:420px;height:1px;background:var(--line);margin:22px 0 0;
+        position:relative;overflow:hidden}
+  .rule i{position:absolute;inset:0;width:0;background:var(--paper);transition:width .35s}
+
+  @media (max-width:640px){
+    .ui{padding-inline:22px}
+    .boot{padding-inline:22px}
+    .sub{display:none}
+    .figures{gap:24px}
+    .meta{display:none}
+  }
 </style>
 
+</head>
+<body>
 <canvas id="gl"></canvas>
 
 <div class="ui" id="ui">
-  <div class="title">
-    <div class="livetag"><span class="livedot"></span>LIVE — SIMULATING NOW</div>
-    <h1>Fly at the Controls</h1>
-    <p><b id="t-n">92,743</b> neurons and <b id="t-s">3.7M</b> synapses of the
-       <i>Drosophila</i> visual system, spiking in your browser. The fly sees the
-       screen through its photoreceptors and picks every swipe itself — nothing
-       here is recorded.</p>
+  <div>
+    <h1>Fly at the <em>Controls</em></h1>
+    <p class="sub">The visual system of a <i>Drosophila melanogaster</i>, wired to a
+      phone. It sees the screen through its photoreceptors and chooses every swipe
+      itself, here, now — nothing on this page is a recording.</p>
   </div>
-  <div class="bar">
-    <button id="play">Pause</button>
-    <button id="hide">Hide overlay</button>
-    <div class="read">swipe <b id="act">—</b></div>
-    <div class="read">spikes/step <b id="spk">0</b></div>
-    <div class="read">distance <b id="dist">0</b></div>
-    <div class="read">best <b id="best">0</b></div>
-    <span class="spacer"></span>
-    <span class="hintkey">drag to orbit · scroll to zoom · H to hide</span>
+
+  <div>
+    <div class="figures">
+      <div class="fig"><span>Neurons</span><b id="t-n">92,743</b></div>
+      <div class="fig"><span>Synapses</span><b id="t-s">3.7M</b></div>
+      <div class="fig"><span>Spikes / step</span><b id="spk">0</b></div>
+      <div class="fig"><span>Swipe</span><b id="act">—</b></div>
+      <div class="fig"><span>Distance</span><b id="dist">0</b></div>
+      <div class="fig"><span>Best</span><b id="best">0</b></div>
+    </div>
+    <div class="foot">
+      <div class="controls">
+        <button id="play">Pause</button>
+        <button id="hide">Hide text</button>
+      </div>
+      <p class="meta">MaleCNS v1.0 · Google Research &amp; HHMI Janelia · CC-BY<br>Fly model: <a href="https://sketchfab.com/3d-models/drosophila-adult-fruit-fly-ct-scan-ad29b897bd2b4e27bb04ab9d31baa117">Drosophila CT scan</a> by <a href="https://sketchfab.com/etainproject">etainproject</a>, CC-BY-4.0<br>Drag to orbit, scroll to zoom, H to hide</p>
+    </div>
   </div>
 </div>
 
 <div class="boot" id="boot">
-  <div class="b1" id="bootmsg">LOADING CONNECTOME</div>
-  <div class="track"><i id="bootbar"></i></div>
-  <div class="b2">Downloading 3.7 million synapses of real fly wiring. One-time,
-    then everything runs locally.</div>
+  <h2 id="bootmsg">Loading the connectome</h2>
+  <p>3.7 million synapses of real fly wiring, fetched once. Everything after
+     that runs on this machine.</p>
+  <div class="rule"><i id="bootbar"></i></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
@@ -94,6 +144,15 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/EffectComposer.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/math/SimplexNoise.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/SSAOShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/SSAOPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/BokehShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/BokehPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/FilmShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/FilmPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/VignetteShader.js"></script>
 
 <script>/* Live spiking simulation of a Drosophila visual system, in the browser.
  *
@@ -452,7 +511,7 @@
     function laneX(lane, hw) { return cx + (lane - 1) * (hw * 0.62); }
 
     // Rails.
-    ctx.strokeStyle = "rgba(220,220,230,.55)"; ctx.lineWidth = Math.max(1, W * 0.006);
+    ctx.strokeStyle = "rgba(226,228,236,.62)"; ctx.lineWidth = Math.max(2, W * 0.008);
     [-1, 0, 1].forEach(function (off) {
       ctx.beginPath();
       for (var d = 0; d <= 22; d++) {
@@ -461,11 +520,14 @@
       }
       ctx.stroke();
     });
-    // Sleepers.
-    ctx.strokeStyle = "rgba(70,48,34,.75)";
-    for (var d2 = 0; d2 < 22; d2 += 1) {
+    // Sleepers. Only the near ones are drawn: beyond about eight depths they
+    // converge to within a pixel of each other and become an aliasing source
+    // rather than detail, and they fade out instead of stopping abruptly.
+    for (var d2 = 0; d2 < 9; d2 += 1) {
       var p2 = proj(d2);
-      ctx.lineWidth = Math.max(1, (1 - d2 / 22) * W * 0.012);
+      var fade = 1 - d2 / 9;
+      ctx.strokeStyle = "rgba(70,48,34," + (0.72 * fade).toFixed(3) + ")";
+      ctx.lineWidth = Math.max(1.6, fade * W * 0.016);
       ctx.beginPath();
       ctx.moveTo(cx - p2[1] * 0.95, p2[0]); ctx.lineTo(cx + p2[1] * 0.95, p2[0]);
       ctx.stroke();
@@ -543,10 +605,10 @@
 <script>
 (function(){
   "use strict";
-  var scene,camera,renderer,composer,bloom,screenMesh,screenTex,fly,root,clock;
+  var scene,camera,renderer,composer,bloom,ssao,bokeh,screenMesh,screenTex,fly,root,clock;
   var brain=null,game=null,playing=true,lastTick=0,best=0,curAction=0,deadFor=0;
   var screenCanvas,screenCtx;
-  var SW=360,SH=780;                    // phone screen render target
+  var SW=540,SH=1170;                    // phone screen render target
   var dist0=6.0;
   var reduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -571,6 +633,70 @@
     x.bezierCurveTo(W*.16,H*.10,W*.66,H*.02,W*.96,H*.36);
     x.strokeStyle="rgba(84,102,116,.62)"; x.lineWidth=3.4; x.stroke();
     return new THREE.CanvasTexture(c);
+  }
+
+
+  /* ------------------------------------------------- procedural surfaces */
+  /* Real materials are never uniform. Flat colour with a constant roughness is
+     the main reason a render reads as CG, so the desk gets fine value noise as
+     colour, a matching roughness map so highlights break up, and a normal map
+     derived from the same field so it catches light at grazing angles. */
+  function noiseCanvas(size, octaves, contrast){
+    var c=document.createElement("canvas"); c.width=c.height=size;
+    var x=c.getContext("2d"), img=x.createImageData(size,size), d=img.data;
+    var grid=[];
+    for(var o=0;o<octaves;o++){
+      var n=Math.pow(2,o+2), g=new Float32Array(n*n);
+      for(var i=0;i<n*n;i++) g[i]=Math.random();
+      grid.push({n:n,g:g});
+    }
+    function sample(u,v){
+      var sum=0, amp=1, norm=0;
+      for(var o=0;o<grid.length;o++){
+        var G=grid[o], n=G.n;
+        var fx=u*n, fy=v*n;
+        var x0=Math.floor(fx)%n, y0=Math.floor(fy)%n;
+        var x1=(x0+1)%n, y1=(y0+1)%n;
+        var tx=fx-Math.floor(fx), ty=fy-Math.floor(fy);
+        tx=tx*tx*(3-2*tx); ty=ty*ty*(3-2*ty);
+        var a=G.g[y0*n+x0], b=G.g[y0*n+x1], cc=G.g[y1*n+x0], dd=G.g[y1*n+x1];
+        sum+=amp*((a*(1-tx)+b*tx)*(1-ty)+(cc*(1-tx)+dd*tx)*ty);
+        norm+=amp; amp*=0.52;
+      }
+      return sum/norm;
+    }
+    for(var y=0;y<size;y++) for(var xx=0;xx<size;xx++){
+      var v=sample(xx/size,y/size);
+      v=0.5+(v-0.5)*contrast;
+      var k=(y*size+xx)*4, b=Math.max(0,Math.min(255,v*255));
+      d[k]=d[k+1]=d[k+2]=b; d[k+3]=255;
+    }
+    x.putImageData(img,0,0);
+    return c;
+  }
+  function normalFrom(canvas, strength){
+    var size=canvas.width, sx=canvas.getContext("2d").getImageData(0,0,size,size).data;
+    var out=document.createElement("canvas"); out.width=out.height=size;
+    var ox=out.getContext("2d"), im=ox.createImageData(size,size), d=im.data;
+    function h(x,y){ return sx[((y+size)%size*size+(x+size)%size)*4]/255; }
+    for(var y=0;y<size;y++) for(var x=0;x<size;x++){
+      var dx=(h(x+1,y)-h(x-1,y))*strength, dy=(h(x,y+1)-h(x,y-1))*strength;
+      var len=Math.sqrt(dx*dx+dy*dy+1);
+      var k=(y*size+x)*4;
+      d[k]=(-dx/len*0.5+0.5)*255; d[k+1]=(-dy/len*0.5+0.5)*255;
+      d[k+2]=(1/len*0.5+0.5)*255; d[k+3]=255;
+    }
+    ox.putImageData(im,0,0);
+    return out;
+  }
+  function surfaceMaps(repeat){
+    var base=noiseCanvas(256,4,0.45);
+    var t=new THREE.CanvasTexture(base), nrm=new THREE.CanvasTexture(normalFrom(base,2.4));
+    [t,nrm].forEach(function(m){
+      m.wrapS=m.wrapT=THREE.RepeatWrapping; m.repeat.set(repeat,repeat);
+      m.anisotropy=8;
+    });
+    return {rough:t, normal:nrm};
   }
 
   var MAT={};
@@ -734,6 +860,48 @@
     return f;
   }
 
+
+  /* ------------------------------------------------- the real fly, scanned */
+  /* A micro-CT scan of an actual Drosophila (etainproject, CC-BY-4.0), 1.5M
+     triangles of real anatomy. It replaces the fly I had built out of spheres
+     and cylinders, because past a point the geometry is the ceiling: no amount
+     of lighting makes primitives read as an animal.
+     The trade-off is that the scan is one merged surface with no named parts,
+     so there are no separate legs to articulate. The body leans into each
+     decision instead of the forelegs swiping. */
+  function loadRealFly(onDone){
+    if(typeof THREE.GLTFLoader!=="function"){ onDone(null); return; }
+    new THREE.GLTFLoader().load("models/drosophila/scene.gltf", function(gltf){
+      var root=gltf.scene;
+      var mat=new THREE.MeshPhysicalMaterial({
+        color:0x6f4f22, roughness:0.46, metalness:0.12,
+        clearcoat:0.75, clearcoatRoughness:0.30,
+        envMap:scene.environment, envMapIntensity:0.5,
+        sheen:0.35, sheenColor:new THREE.Color(0x8a6a3a),
+        sheenRoughness:0.7
+      });
+      root.traverse(function(o){
+        if(!o.isMesh) return;
+        if(!o.geometry.attributes.normal) o.geometry.computeVertexNormals();
+        o.material=mat; o.castShadow=true; o.receiveShadow=true;
+      });
+      // Scan frame is head -Y, up +Z; the scene wants head +Z, up +Y.
+      var pivot=new THREE.Group();
+      root.rotation.x=-Math.PI/2;
+      var box=new THREE.Box3().setFromObject(root);
+      var size=box.getSize(new THREE.Vector3());
+      var ctr=box.getCenter(new THREE.Vector3());
+      root.position.sub(ctr);                       // centre on its own origin
+      var target=1.55;                              // world units, nose to tail
+      root.scale.multiplyScalar(target/Math.max(size.x,size.y,size.z));
+      pivot.add(root);
+      // Sit it on the desk rather than through it.
+      var b2=new THREE.Box3().setFromObject(pivot);
+      pivot.position.y -= b2.min.y;
+      onDone(pivot);
+    }, undefined, function(err){ console.warn("fly model failed:",err); onDone(null); });
+  }
+
   function roundRect(w,h,r){
     var s=new THREE.Shape();
     s.moveTo(-w/2+r,-h/2);
@@ -807,17 +975,29 @@
 
     root=new THREE.Group(); scene.add(root);
 
-    var sweepMat=new THREE.MeshStandardMaterial({color:0x0c1118,roughness:.96,
-      metalness:.02,envMap:env,envMapIntensity:.08,side:THREE.DoubleSide});
-    var Y=-1.42,R=2.2;
-    var floor=new THREE.Mesh(new THREE.PlaneGeometry(40,14),sweepMat);
-    floor.rotation.x=-Math.PI/2; floor.position.set(0,Y,7-R); floor.receiveShadow=true;
-    root.add(floor);
-    var cove=new THREE.Mesh(new THREE.CylinderGeometry(R,R,40,36,1,true,0,Math.PI/2),sweepMat);
-    cove.rotation.z=Math.PI/2; cove.position.set(0,Y+R,-R); cove.receiveShadow=true;
-    root.add(cove);
-    var wall=new THREE.Mesh(new THREE.PlaneGeometry(40,22),sweepMat);
-    wall.position.set(0,Y+R+11,-2*R); wall.receiveShadow=true; root.add(wall);
+    // A desk, not a void. The sweep read as a product-shot backdrop; a surface
+    // with grain, a visible edge and darkness beyond puts the scene somewhere.
+    var maps=surfaceMaps(9);
+    var deskMat=new THREE.MeshStandardMaterial({
+      color:0x171a1f, roughness:0.82, metalness:0.04,
+      roughnessMap:maps.rough, normalMap:maps.normal,
+      normalScale:new THREE.Vector2(0.55,0.55),
+      envMap:env, envMapIntensity:0.22
+    });
+    var Y=-1.42;
+    var desk=new THREE.Mesh(new THREE.BoxGeometry(14,0.5,9),deskMat);
+    desk.position.set(0,Y-0.25,1.2); desk.receiveShadow=true; desk.castShadow=true;
+    root.add(desk);
+
+    // Far wall, well behind and barely lit, so the frame has depth without
+    // anything competing for attention.
+    var wallMat=new THREE.MeshStandardMaterial({
+      color:0x0b0e13, roughness:0.95, metalness:0.0,
+      roughnessMap:maps.rough, normalMap:maps.normal,
+      normalScale:new THREE.Vector2(0.3,0.3), envMap:env, envMapIntensity:0.1
+    });
+    var wall=new THREE.Mesh(new THREE.PlaneGeometry(40,24),wallMat);
+    wall.position.set(0,Y+6,-7); root.add(wall);
 
     var cc=document.createElement("canvas"); cc.width=cc.height=256;
     var cx=cc.getContext("2d");
@@ -835,7 +1015,12 @@
     screenCtx=screenCanvas.getContext("2d");
     screenTex=new THREE.CanvasTexture(screenCanvas);
     screenTex.encoding=THREE.sRGBEncoding;
-    screenTex.minFilter=THREE.LinearFilter; screenTex.generateMipmaps=false;
+    // Mipmaps and anisotropy, because the display is viewed at a slant and
+    // minified: without them the rail lines alias badly.
+    screenTex.generateMipmaps=true;
+    screenTex.minFilter=THREE.LinearMipmapLinearFilter;
+    screenTex.magFilter=THREE.LinearFilter;
+    screenTex.anisotropy=renderer.capabilities.getMaxAnisotropy();
 
     var phone=makePhone(screenTex);
     phone.rotation.set(0.10,-0.20,0);
@@ -843,11 +1028,21 @@
     root.add(phone);
     screenMesh=phone.userData.screen;
 
-    fly=makeFly(env);
-    fly.scale.setScalar(0.62);
-    fly.position.set(-0.72,-0.99,0.62);
-    fly.rotation.set(0,2.30,0);   // level, turned to face the screen
-    root.add(fly);
+    var DESK_TOP=-1.42;
+    loadRealFly(function(real){
+      if(real){
+        fly=real; fly.userData.scanned=true;
+        fly.position.set(-0.78,DESK_TOP,0.66);
+        fly.rotation.set(0,2.30,0);
+      } else {
+        fly=makeFly(env); fly.userData.scanned=false;
+        fly.scale.setScalar(0.62);
+        fly.position.set(-0.72,-0.99,0.62);
+        fly.rotation.set(0,2.30,0);
+      }
+      fly.userData.baseY=fly.position.y;
+      root.add(fly);
+    });
 
     var drag=false,px=0,py=0,yaw=0,pitch=0;
     function down(e){drag=true;var p=e.touches?e.touches[0]:e;px=p.clientX;py=p.clientY;}
@@ -870,14 +1065,55 @@
       dist0=Math.max(3.4,Math.min(11,dist0+e.deltaY*.003)); e.preventDefault();
     },{passive:false});
 
-    if(typeof THREE.EffectComposer==="function" && typeof THREE.UnrealBloomPass==="function"){
-      try{
-        composer=new THREE.EffectComposer(renderer);
+    // Post chain, built defensively: each stage is optional and the scene still
+    // renders if any of them is unavailable.
+    //
+    // SSAO first, because contact darkening is what makes objects look like
+    // they are resting on a surface rather than floating above it. Then bloom
+    // for the display. Then depth of field, which is the strongest single cue
+    // that a frame was photographed rather than rendered -- a real lens cannot
+    // hold a fly and a far wall in focus at once. Grain and vignette last, kept
+    // very light; overdone they read as a filter.
+    try{
+      var c0=document.getElementById("gl");
+      var w0=c0.clientWidth||1, h0=c0.clientHeight||1;
+      var rt=new THREE.WebGLRenderTarget(w0,h0,{
+        samples:4, type:THREE.HalfFloatType,
+        minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter
+      });
+      composer=new THREE.EffectComposer(renderer,rt);
+
+      if(typeof THREE.SSAOPass==="function" && typeof SimplexNoise!=="undefined"){
+        ssao=new THREE.SSAOPass(scene,camera,w0,h0);
+        ssao.kernelRadius=0.22; ssao.minDistance=0.0012; ssao.maxDistance=0.09;
+        composer.addPass(ssao);
+      } else {
         composer.addPass(new THREE.RenderPass(scene,camera));
-        bloom=new THREE.UnrealBloomPass(new THREE.Vector2(1,1),0.34,0.6,0.88);
+      }
+
+      if(typeof THREE.UnrealBloomPass==="function"){
+        bloom=new THREE.UnrealBloomPass(new THREE.Vector2(w0,h0),0.34,0.6,0.88);
         composer.addPass(bloom);
-      }catch(e){ composer=null; }
-    }
+      }
+
+      if(typeof THREE.BokehPass==="function"){
+        bokeh=new THREE.BokehPass(scene,camera,{
+          focus:6.0, aperture:0.00055, maxblur:0.012, width:w0, height:h0
+        });
+        composer.addPass(bokeh);
+      }
+
+      if(typeof THREE.FilmPass==="function"){
+        var film=new THREE.FilmPass(0.14,0.0,0,false);
+        composer.addPass(film);
+      }
+      if(typeof THREE.VignetteShader!=="undefined"){
+        var vig=new THREE.ShaderPass(THREE.VignetteShader);
+        vig.uniforms.offset.value=1.08; vig.uniforms.darkness.value=1.22;
+        composer.addPass(vig);
+      }
+      if(composer.passes.length) composer.passes[composer.passes.length-1].renderToScreen=true;
+    }catch(e){ composer=null; console.warn("post-processing unavailable:",e); }
 
     clock=new THREE.Clock();
     resize(); window.addEventListener("resize",resize);
@@ -889,12 +1125,31 @@
     if(!w||!h) return;
     renderer.setSize(w,h,false);
     camera.aspect=w/h; camera.updateProjectionMatrix();
-    if(composer){ composer.setSize(w,h);
-      composer.setPixelRatio(Math.min(window.devicePixelRatio,2)); }
+    if(composer){
+      composer.setSize(w,h);
+      composer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+      if(ssao) ssao.setSize(w,h);
+      if(bokeh && bokeh.renderTargetDepth) bokeh.renderTargetDepth.setSize(w,h);
+    }
   }
 
   function animateFly(t){
     var d=fly.userData;
+    if(d.scanned){
+      // No separate limbs to pose, so the decision shows in the body: a lean
+      // toward the swipe, a small crouch for roll, a lift for jump.
+      var base=d.baseY, lean=0, rise=0, pitch=0;
+      var ph=(t*5)%1, reach=Math.sin(ph*Math.PI);
+      if(curAction===1) lean=-0.22*reach;
+      else if(curAction===2) lean=0.22*reach;
+      else if(curAction===3){ rise=0.10*reach; pitch=-0.16*reach; }
+      else if(curAction===4){ rise=-0.045*reach; pitch=0.20*reach; }
+      fly.position.y=base+rise+Math.sin(t*1.9)*0.008;
+      fly.rotation.z=lean;
+      fly.rotation.x=pitch;
+      fly.rotation.y=2.30+Math.sin(t*0.42)*0.05;
+      return;
+    }
     var beat=Math.sin(t*38)*.46, flick=Math.sin(t*38+1.2)*.10;
     d.wings[0].rotation.z=-.10+beat; d.wings[0].rotation.x=flick;
     d.wings[1].rotation.z=-.10-beat; d.wings[1].rotation.x=-flick;
@@ -944,6 +1199,8 @@
     camera.position.set(Math.sin(drift)*dist0,0.45+Math.sin(t*0.09)*0.05,Math.cos(drift)*dist0);
     camera.lookAt(0,-0.10,0);
     if(fly) animateFly(t);
+    if(bokeh && bokeh.uniforms && bokeh.uniforms.focus)
+      bokeh.uniforms.focus.value = dist0 - 0.35;   // hold focus on fly + phone
     if(composer) composer.render(); else renderer.render(scene,camera);
   }
 
@@ -975,7 +1232,7 @@
     var ui=document.getElementById("ui"), hb=document.getElementById("hide");
     function toggleUI(){
       ui.classList.toggle("hidden");
-      hb.textContent=ui.classList.contains("hidden")?"Show overlay":"Hide overlay";
+      hb.textContent=ui.classList.contains("hidden")?"Show text":"Hide text";
     }
     hb.addEventListener("click",toggleUI);
     window.addEventListener("keydown",function(e){
@@ -988,3 +1245,5 @@
   });
 })();
 </script>
+</body>
+</html>

@@ -320,3 +320,12 @@ nor safe.
 
 MaleCNS v1.0, CC-BY. Google Research + HHMI Janelia FlyEM.
 <https://male-cns.janelia.org/download/>
+
+## Credits
+
+Fly model: "Drosophila - Adult Fruit Fly - CT Scan"
+(https://sketchfab.com/3d-models/drosophila-adult-fruit-fly-ct-scan-ad29b897bd2b4e27bb04ab9d31baa117)
+by etainproject (https://sketchfab.com/etainproject), licensed under CC-BY-4.0
+(http://creativecommons.org/licenses/by/4.0/).
+
+Connectome: MaleCNS v1.0, Google Research and HHMI Janelia, CC-BY.

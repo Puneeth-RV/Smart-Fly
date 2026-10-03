@@ -20,3 +20,9 @@ out/run1.log
 out/live/
 out/scene/net.json
 out/scene/*.bin
+out/pursuit/
+out/morph/
+out/atlas/
+data/skeletons/
+drosophila_-_adult_fruit_fly_-_ct_scan/
+out/scene/models/
