@@ -1,0 +1,15 @@
+building brain (no tonic drive, per-neuron homeostatic bias) ...
+  readout: 6145 neurons (photoreceptors + first-order optic lobe)
+  calibration: 6.1 Hz, silent 50%
+
+round 0 — oracle demonstrations
+    9202 frames | closed-loop distance  17.1 (median 14, max 59)
+round 1 — +2202 own-distribution frames (11404 total) | closed-loop distance  17.9 (median 14, max 59)
+round 2 — +2515 own-distribution frames (13919 total) | closed-loop distance  16.6 (median 14, max 62)
+round 3 — +2281 own-distribution frames (16200 total) | closed-loop distance  17.5 (median 15, max 66)
+round 4 — +2373 own-distribution frames (18573 total) | closed-loop distance  16.2 (median 14, max 37)
+round 5 — +2385 own-distribution frames (20958 total) | closed-loop distance  20.3 (median 17, max 53)
+round 6 — +2474 own-distribution frames (23432 total) | closed-loop distance  16.5 (median 14, max 45)
+
+random 13.7 | oracle 68.9
+wrote /Users/puneethrv/Auraspace/SmartFly/out/dagger_policy.npz

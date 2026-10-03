@@ -122,8 +122,17 @@ class ConnectomeBrain:
             W = W.tocsr()
 
         self.W = W
+        self._Wt = None   # lazily built transpose, for the dense path
         self.n = W.shape[0]
         self.rng = np.random.default_rng(self.cfg.seed)
+        # Per-neuron scaling of incoming drive. Starts at 1 and is fitted by
+        # `homeostatic_scaling`; this is the variable that can actually rescue a
+        # neuron receiving too little input, which lowering a threshold cannot.
+        self.in_gain = np.ones(self.n, dtype=np.float32)
+        # Per-neuron resting drive, fitted by `homeostatic_bias`. This is the
+        # intrinsic depolarisation a neuron sits at before synaptic input
+        # arrives, and it is what makes a sign-inverting synapse work at all.
+        self.bias = np.zeros(self.n, dtype=np.float32)
         # Heterogeneous excitability (see LIFConfig.threshold_spread).
         if self.cfg.threshold_spread > 0:
             th = self.cfg.v_threshold * (
@@ -148,23 +157,33 @@ class ConnectomeBrain:
         self.trace = np.zeros(self.n, dtype=np.float32)
 
     # ------------------------------------------------------------------
-    def synaptic_input(self, spikes: np.ndarray) -> np.ndarray:
-        """Sum the outgoing weights of the neurons that fired.
+    # Fraction of neurons above which the transpose matvec beats row slicing.
+    _DENSE_SWITCH = 0.02
 
-        Only the CSR rows of active neurons are touched, so the cost tracks the
-        firing rate rather than the edge count.
+    def synaptic_input(self, spikes: np.ndarray) -> np.ndarray:
+        """Total synaptic current each neuron receives this step.
+
+        Two strategies, because neither wins everywhere. Slicing the CSR rows of
+        the active neurons is ideal when firing is sparse, but `W[active]`
+        *builds a new sparse matrix* on every call, and at the 30-50% activity
+        this network actually runs at that rebuild dominates everything -- it
+        turned a calibration that should take seconds into eighteen minutes.
+        Above a couple of percent active, one matvec against the precomputed
+        transpose is far cheaper and runs entirely in scipy's C path.
         """
         active = np.flatnonzero(spikes)
         if active.size == 0:
             return np.zeros(self.n, dtype=np.float32)
-        # Slicing rows of a CSR matrix is cheap; the sum over those rows is the
-        # total current each postsynaptic neuron receives.
+        if active.size > self._DENSE_SWITCH * self.n:
+            if self._Wt is None:
+                self._Wt = self.W.T.tocsr()
+            return self._Wt.dot(spikes.astype(np.float32))
         return np.asarray(self.W[active].sum(axis=0)).ravel()
 
     def step(self, ext_current: np.ndarray | None = None) -> np.ndarray:
         """Advance one timestep. Returns the boolean spike vector."""
         cfg = self.cfg
-        I = self.synaptic_input(self.spikes) * cfg.gain
+        I = self.synaptic_input(self.spikes) * cfg.gain * self.in_gain + self.bias
         if ext_current is not None:
             I = I + ext_current
         if cfg.noise > 0:
@@ -359,3 +378,202 @@ if __name__ == "__main__":
     r = b.firing_rate_hz(counts, nsteps)
     print(f"\n  {nsteps} steps in {dt:.2f}s -> {nsteps/dt:.0f} brain-steps/s")
     print(f"  mean rate {r.mean():.2f} Hz | active neurons {(counts>0).sum():,}/{n:,}")
+
+
+# ----------------------------------------------------------------------
+# homeostatic calibration
+# ----------------------------------------------------------------------
+def homeostatic_bias(
+    brain: "ConnectomeBrain",
+    ext_frames,
+    target_hz: float = 6.0,
+    iters: int = 45,
+    steps_per_frame: int = 8,
+    lr: float = 0.12,
+    lo: float = 0.0,
+    hi: float = 2.5,
+    seed: int = 0,
+) -> dict:
+    """Fit each neuron's own resting drive, replacing the uniform tonic pedestal.
+
+    The fly's first visual synapse is sign-inverting: photoreceptors are
+    histaminergic and *inhibitory*, and the lamina cells they contact are driven
+    by the removal of that inhibition, not by its arrival. A neuron whose input
+    is purely inhibitory can therefore never fire from that input alone -- with
+    the tonic drive removed the optic lobe sat at exactly 0% active while the
+    photoreceptors fired at 84%, and amplifying the incoming weights 4000x only
+    deepened the inhibition. The real cell solves this with intrinsic
+    depolarisation that the histamine opposes.
+
+    So every neuron gets its own resting drive, fitted until it fires near
+    `target_hz` on real stimuli. This is what the uniform tonic drive was
+    standing in for, and the difference is the whole point: a single pedestal
+    applied to all 166k neurons is uncorrelated with the stimulus and dominates
+    each neuron's input variance, whereas a fitted per-neuron bias places each
+    cell at the edge of its own threshold, so it is the stimulus that decides
+    which ones cross.
+    """
+    n = brain.n
+    target = max(target_hz, 1e-3)
+    hist = []
+    for it in range(iters):
+        brain.reset()
+        counts = np.zeros(n, dtype=np.int32)
+        nsteps = 0
+        for _ in range(6):
+            ext = ext_frames()
+            for _ in range(steps_per_frame):
+                counts += brain.step(ext)
+                nsteps += 1
+        rate = counts / (nsteps * brain.cfg.dt / 1000.0)
+        # Additive update: bias is a current, so it moves in current units
+        # rather than multiplicatively (a bias of 0 cannot be scaled up).
+        err = (target - rate) / target
+        brain.bias = np.clip(brain.bias + lr * 0.05 * err, lo, hi).astype(np.float32)
+        hist.append({"iter": it, "mean_hz": float(rate.mean()),
+                     "median_hz": float(np.median(rate)),
+                     "silent_frac": float((rate == 0).mean())})
+    return {"history": hist, "final": hist[-1],
+            "bias": {"min": float(brain.bias.min()),
+                     "median": float(np.median(brain.bias)),
+                     "max": float(brain.bias.max())}}
+
+
+def homeostatic_scaling(
+    brain: "ConnectomeBrain",
+    ext_frames,
+    target_hz: float = 6.0,
+    iters: int = 40,
+    steps_per_frame: int = 8,
+    lr: float = 0.5,
+    lo: float = 0.02,
+    hi: float = 4000.0,
+    seed: int = 0,
+) -> dict:
+    """Let each neuron scale its own incoming drive to hit a target rate.
+
+    Threshold calibration alone cannot fix this network. With inputs normalised
+    so that "all my inputs fired" equals 1, a deep neuron with three of three
+    thousand inputs active receives about 0.001 of drive; no threshold low
+    enough to spike on that is also high enough to be selective, and in practice
+    the network simply stayed silent (99% of neurons, 0.5 Hz) however far the
+    thresholds were pushed down. Excitability cannot manufacture drive that is
+    not arriving.
+
+    Synaptic scaling can. Each neuron multiplies its own incoming weights by a
+    fitted factor, so a weakly-driven neuron amplifies what little it receives
+    until its rate reaches target, and a saturated one turns itself down. The
+    cascade then carries the stimulus through all five stages without an
+    external pedestal, which is what the uniform tonic drive was standing in for.
+
+    Like threshold calibration this is homeostatic plasticity, and synaptic
+    scaling is the better-documented of the two: cortical neurons really do
+    multiplicatively rescale their inputs to defend a target firing rate. It is
+    fitted once against real stimulus statistics and then frozen.
+    """
+    n = brain.n
+    target = max(target_hz, 1e-3)
+    hist = []
+    for it in range(iters):
+        brain.reset()
+        counts = np.zeros(n, dtype=np.int32)
+        nsteps = 0
+        for _ in range(6):
+            ext = ext_frames()
+            for _ in range(steps_per_frame):
+                counts += brain.step(ext)
+                nsteps += 1
+        rate = counts / (nsteps * brain.cfg.dt / 1000.0)
+
+        # Multiplicative, in log-rate. Silent neurons get a fixed upward push,
+        # since log(0) gives no gradient to follow.
+        err = np.log(target / (rate + 0.05))
+        step = np.exp(lr * err)
+        step[rate == 0] = np.exp(lr * 1.5)
+        brain.in_gain = np.clip(brain.in_gain * step, lo, hi).astype(np.float32)
+
+        hist.append({"iter": it, "mean_hz": float(rate.mean()),
+                     "median_hz": float(np.median(rate)),
+                     "silent_frac": float((rate == 0).mean())})
+    return {"history": hist, "final": hist[-1],
+            "in_gain": {"min": float(brain.in_gain.min()),
+                        "median": float(np.median(brain.in_gain)),
+                        "max": float(brain.in_gain.max())}}
+
+
+def homeostatic_thresholds(
+    brain: "ConnectomeBrain",
+    ext_frames,
+    target_hz: float = 6.0,
+    iters: int = 30,
+    steps_per_frame: int = 8,
+    lr: float = 0.35,
+    floor: float = 0.02,
+    ceil: float = 60.0,
+    seed: int = 0,
+) -> dict:
+    """Give every neuron its own threshold, fitted to the input it actually gets.
+
+    A single global gain cannot keep a five-stage cascade in range. Whatever
+    value is chosen, some stages saturate while others fall silent, and the only
+    way to get the deep stages firing at all was a uniform tonic drive applied to
+    all 166k neurons -- a pedestal uncorrelated with the stimulus, which then
+    dominated each neuron's input variance and left the visual signal to be
+    thresholded away. Measured: 59.7% of the task decodable at the retina,
+    15.7% by the Kenyon cells.
+
+    So instead of one gain plus a pedestal, each neuron gets an excitability
+    fitted to its own input distribution: run the network on real stimuli,
+    measure firing rates, and move each threshold multiplicatively until the
+    rate sits near `target_hz`. Neurons that never fire become more excitable;
+    runaway neurons become less. Every stage then operates inside its dynamic
+    range on visual drive alone, with no pedestal to swamp it.
+
+    This is intrinsic homeostatic plasticity, which real neurons do -- it is the
+    mechanism that keeps firing rates stable as synaptic drive changes. It is
+    fitted once, offline, and then frozen.
+
+    Parameters
+    ----------
+    ext_frames : callable
+        Returns a fresh external-current vector each call: the visual drive for
+        one frame. Calibrating against real stimulus statistics rather than
+        noise is the point -- thresholds fitted to the wrong input distribution
+        are no better than a global gain.
+    """
+    rng = np.random.default_rng(seed)
+    n = brain.n
+    target = max(target_hz, 1e-3)
+    hist = []
+
+    for it in range(iters):
+        brain.reset()
+        counts = np.zeros(n, dtype=np.int32)
+        nsteps = 0
+        for _ in range(6):                      # a few frames per iteration
+            ext = ext_frames()
+            for _ in range(steps_per_frame):
+                counts += brain.step(ext)
+                nsteps += 1
+        rate = counts / (nsteps * brain.cfg.dt / 1000.0)
+
+        # Multiplicative update in log-rate: a neuron firing twice as fast as
+        # target has its threshold raised by the same factor one firing half as
+        # fast has it lowered. Silent neurons are pulled down by a fixed step,
+        # since log(0) carries no gradient.
+        err = np.log((rate + 0.05) / target)
+        step = np.exp(lr * err)
+        step[rate == 0] = np.exp(-lr * 1.2)
+        brain.v_th = np.clip(brain.v_th * step, floor, ceil).astype(np.float32)
+
+        hist.append({
+            "iter": it,
+            "mean_hz": float(rate.mean()),
+            "median_hz": float(np.median(rate)),
+            "silent_frac": float((rate == 0).mean()),
+            "active_frac": float((rate > 0).mean()),
+        })
+
+    return {"history": hist, "final": hist[-1],
+            "v_th": {"min": float(brain.v_th.min()), "max": float(brain.v_th.max()),
+                     "median": float(np.median(brain.v_th))}}

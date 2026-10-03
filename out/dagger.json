@@ -1,0 +1,60 @@
+{
+  "curve": [
+    {
+      "round": 0,
+      "frames": 9202,
+      "mean": 17.15,
+      "median": 13.5,
+      "max": 59.0
+    },
+    {
+      "round": 1,
+      "frames": 11404,
+      "mean": 17.916666666666668,
+      "median": 14.0,
+      "max": 59.0
+    },
+    {
+      "round": 2,
+      "frames": 13919,
+      "mean": 16.6,
+      "median": 14.0,
+      "max": 62.0
+    },
+    {
+      "round": 3,
+      "frames": 16200,
+      "mean": 17.483333333333334,
+      "median": 15.0,
+      "max": 66.0
+    },
+    {
+      "round": 4,
+      "frames": 18573,
+      "mean": 16.166666666666668,
+      "median": 14.0,
+      "max": 37.0
+    },
+    {
+      "round": 5,
+      "frames": 20958,
+      "mean": 20.3,
+      "median": 17.0,
+      "max": 53.0
+    },
+    {
+      "round": 6,
+      "frames": 23432,
+      "mean": 16.483333333333334,
+      "median": 14.0,
+      "max": 45.0
+    }
+  ],
+  "calibration": {
+    "iter": 34,
+    "mean_hz": 6.141765829440697,
+    "median_hz": 0.0,
+    "silent_frac": 0.5037395380181351
+  },
+  "readout_size": 6145
+}

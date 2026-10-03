@@ -15,3 +15,8 @@ out/fly_fast.gif
 # Scratch
 out/smoke.json
 out/run1.log
+
+# Exported live network (regenerate with src/android/export_live.py)
+out/live/
+out/scene/net.json
+out/scene/*.bin
