@@ -1,0 +1,139 @@
+{
+  "history": [
+    {
+      "gen": 0,
+      "best": 691.25,
+      "sigma": 0.2
+    },
+    {
+      "gen": 1,
+      "best": 691.25,
+      "gen_best": 583.0,
+      "sigma": 0.164,
+      "improved": false
+    },
+    {
+      "gen": 2,
+      "best": 725.0,
+      "gen_best": 725.0,
+      "sigma": 0.1886,
+      "improved": true
+    },
+    {
+      "gen": 3,
+      "best": 725.0,
+      "gen_best": 701.5,
+      "sigma": 0.15465199999999998,
+      "improved": false
+    },
+    {
+      "gen": 4,
+      "best": 725.0,
+      "gen_best": 630.25,
+      "sigma": 0.12681463999999998,
+      "improved": false
+    },
+    {
+      "gen": 5,
+      "best": 756.0,
+      "gen_best": 756.0,
+      "sigma": 0.14583683599999997,
+      "improved": true
+    },
+    {
+      "gen": 6,
+      "best": 756.0,
+      "gen_best": 724.0,
+      "sigma": 0.11958620551999997,
+      "improved": false
+    },
+    {
+      "gen": 7,
+      "best": 756.0,
+      "gen_best": 654.0,
+      "sigma": 0.09806068852639997,
+      "improved": false
+    },
+    {
+      "gen": 8,
+      "best": 756.0,
+      "gen_best": 742.5,
+      "sigma": 0.08040976459164798,
+      "improved": false
+    },
+    {
+      "gen": 9,
+      "best": 756.0,
+      "gen_best": 647.25,
+      "sigma": 0.06593600696515134,
+      "improved": false
+    },
+    {
+      "gen": 10,
+      "best": 756.0,
+      "gen_best": 750.75,
+      "sigma": 0.05406752571142409,
+      "improved": false
+    },
+    {
+      "gen": 11,
+      "best": 761.0,
+      "gen_best": 761.0,
+      "sigma": 0.0621776545681377,
+      "improved": true
+    },
+    {
+      "gen": 12,
+      "best": 761.0,
+      "gen_best": 708.75,
+      "sigma": 0.05098567674587291,
+      "improved": false
+    },
+    {
+      "gen": 13,
+      "best": 761.0,
+      "gen_best": 741.5,
+      "sigma": 0.04180825493161579,
+      "improved": false
+    },
+    {
+      "gen": 14,
+      "best": 847.75,
+      "gen_best": 847.75,
+      "sigma": 0.04807949317135815,
+      "improved": true
+    },
+    {
+      "gen": 15,
+      "best": 862.75,
+      "gen_best": 862.75,
+      "sigma": 0.05529141714706187,
+      "improved": true
+    },
+    {
+      "gen": 16,
+      "best": 862.75,
+      "gen_best": 756.0,
+      "sigma": 0.04533896206059073,
+      "improved": false
+    },
+    {
+      "gen": 17,
+      "best": 862.75,
+      "gen_best": 756.0,
+      "sigma": 0.0371779488896844,
+      "improved": false
+    },
+    {
+      "gen": 18,
+      "best": 862.75,
+      "gen_best": 703.5,
+      "sigma": 0.030485918089541205,
+      "improved": false
+    }
+  ],
+  "final_mean": 862.75,
+  "final_best": 1788,
+  "random_baseline": 579,
+  "best_constant": 315
+}

@@ -39,6 +39,8 @@ ACTIONS = ["none", "right", "run-jump", "run", "run-jump-b", "jump", "left"]
 class Mario:
     """The game, plus the reduction from NES frame to the brain's retina."""
 
+    RANDOM_STAGES = "SuperMarioBrosRandomStages-v0"
+
     def __init__(self, world: str = "SuperMarioBros-1-1-v0", seed: int = 0):
         self.env = JoypadSpace(
             gym_super_mario_bros.make(world, apply_api_compatibility=True,
@@ -52,6 +54,7 @@ class Mario:
 
     def reset(self):
         obs, info = self.env.reset()
+        self.stage = (info.get("world"), info.get("stage")) if info else None
         self.frame = np.asarray(obs)
         self.info = info or {}
         self.done = False

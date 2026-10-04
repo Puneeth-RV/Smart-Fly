@@ -1,0 +1,37 @@
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+Users of this version of Gym should be able to simply replace 'import gym' with 'import gymnasium as gym' in the vast majority of cases.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+building brain ...
+  retinotopic pooling: 12x10 grid, 91/120 cells populated, 264 features
+  subnetwork 92,743 neurons, 3,691,425 synapses
+  readout: 264 pooled features -> 7 buttons
+calibrating on Mario's own frames ...
+  15.4 Hz, silent 77%
+
+baselines:  constant actions <= 315   random 579
+evolving the readout on distance travelled:
+  gen  0  best x =    687
+  gen  1  best x =    854   this gen    854   sigma 0.207   (151s)  <-- new best
+  gen  2  best x =   1138   this gen   1138   sigma 0.238   (228s)  <-- new best
+  gen  3  best x =   1138   this gen   1129   sigma 0.195   (193s)
+  gen  4  best x =   1138   this gen    826   sigma 0.160   (149s)
+  gen  5  best x =   1138   this gen    895   sigma 0.131   (92s)
+  gen  6  best x =   1435   this gen   1435   sigma 0.151   (183s)  <-- new best
+  gen  7  best x =   1435   this gen   1151   sigma 0.124   (119s)
+  gen  8  best x =   1944   this gen   1944   sigma 0.142   (128s)  <-- new best
+  gen  9  best x =   1944   this gen   1129   sigma 0.117   (93s)
+  gen 10  best x =   1944   this gen   1138   sigma 0.096   (101s)
+  gen 11  best x =   1944   this gen   1508   sigma 0.078   (69s)
+  gen 12  best x =   1944   this gen   1138   sigma 0.064   (83s)
+  gen 13  best x =   1944   this gen   1425   sigma 0.053   (58s)
+  gen 14  best x =   1944   this gen   1409   sigma 0.043   (51s)
+  gen 15  best x =   1944   this gen   1416   sigma 0.035   (36s)
+  gen 16  best x =   1944   this gen   1135   sigma 0.029   (40s)
+  gen 17  best x =   1944   this gen   1430   sigma 0.024   (45s)
+  gen 18  best x =   1944   this gen    841   sigma 0.020   (45s)
+  gen 19  best x =   1944   this gen   1137   sigma 0.020   (72s)
+  gen 20  best x =   1944   this gen   1129   sigma 0.020   (63s)
+  gen 21  best x =   1944   this gen   1409   sigma 0.020   (67s)
+  gen 22  best x =   1944   this gen   1136   sigma 0.020   (48s)
+  gen 23  best x =   1944   this gen   1136   sigma 0.020   (61s)

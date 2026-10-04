@@ -1,0 +1,38 @@
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+Users of this version of Gym should be able to simply replace 'import gym' with 'import gymnasium as gym' in the vast majority of cases.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+building brain ...
+  retinotopic pooling: 20x16 grid, 232/320 cells populated, 664 features
+  subnetwork 92,743 neurons, 3,691,425 synapses
+  readout: 664 pooled features -> 7 buttons
+  training across 4 stages: 1-1,2-1,3-1,4-1
+calibrating on Mario's own frames ...
+  16.7 Hz, silent 79%
+
+baselines:  constant actions <= 315   random 579
+evolving the readout on distance travelled:
+  gen  0  best x =    691
+  gen  1  best x =    691   this gen    583   sigma 0.164   (185s)
+  gen  2  best x =    725   this gen    725   sigma 0.189   (160s)  <-- new best
+  gen  3  best x =    725   this gen    702   sigma 0.155   (155s)
+  gen  4  best x =    725   this gen    630   sigma 0.127   (121s)
+  gen  5  best x =    756   this gen    756   sigma 0.146   (139s)  <-- new best
+  gen  6  best x =    756   this gen    724   sigma 0.120   (108s)
+  gen  7  best x =    756   this gen    654   sigma 0.098   (96s)
+  gen  8  best x =    756   this gen    742   sigma 0.080   (70s)
+  gen  9  best x =    756   this gen    647   sigma 0.066   (73s)
+  gen 10  best x =    756   this gen    751   sigma 0.054   (72s)
+  gen 11  best x =    761   this gen    761   sigma 0.062   (74s)  <-- new best
+  gen 12  best x =    761   this gen    709   sigma 0.051   (93s)
+  gen 13  best x =    761   this gen    742   sigma 0.042   (77s)
+  gen 14  best x =    848   this gen    848   sigma 0.048   (78s)  <-- new best
+  gen 15  best x =    863   this gen    863   sigma 0.055   (67s)  <-- new best
+  gen 16  best x =    863   this gen    756   sigma 0.045   (74s)
+  gen 17  best x =    863   this gen    756   sigma 0.037   (62s)
+  gen 18  best x =    863   this gen    704   sigma 0.030   (66s)
+
+trained stages : [1788, 306, 821, 536]  mean 863
+never seen     : [200, 344, 652]  mean 399
+       random 579 | best constant 315
+wrote /Users/puneethrv/Auraspace/SmartFly/out/mario3_policy.npz
