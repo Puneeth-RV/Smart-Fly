@@ -26,3 +26,10 @@ out/atlas/
 data/skeletons/
 drosophila_-_adult_fruit_fly_-_ct_scan/
 out/scene/models/
+
+# Intermediate training artefacts; the final run and its results are kept
+out/stage_baselines.glitched.json
+out/baselines.log
+out/marioall*.log
+out/marioall_policy.npz
+out/mario_final_latest.npz

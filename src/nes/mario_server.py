@@ -41,14 +41,46 @@ LOCK = threading.Lock()
 STOP = threading.Event()
 
 
-def play_loop(policy_path: Path, brain_steps: int, frame_skip: int, quality: int):
+SPLIT = {}
+
+
+def _baseline(stage: str) -> float:
     try:
+        from nes.mario_agent import stage_baseline
+        return float(stage_baseline(f"SuperMarioBros-{stage}-v0"))
+    except Exception:
+        return 0.0
+
+
+def _load_split():
+    try:
+        from nes.train_all import TRAIN, VALID, TEST
+        for s_ in TRAIN: SPLIT[s_] = "trained on"
+        for s_ in VALID: SPLIT[s_] = "validation"
+        for s_ in TEST: SPLIT[s_] = "never seen"
+    except Exception:
+        pass
+
+
+def play_loop(policy_path: Path, brain_steps: int, frame_skip: int, quality: int,
+              calib_path: Path | None = None, stages: list | None = None):
+    try:
+        _load_split()
         agent = MarioFly(brain_steps=brain_steps, frame_skip=frame_skip)
-        mario = Mario()
         with LOCK:
             STATE["neurons"] = int(agent.n)
             STATE["synapses"] = int(agent.W.nnz)
-        agent.calibrate(mario, iters=30)
+        # Use the exact calibration the policy was trained with; recalibrating
+        # here would hand the readout a slightly different brain.
+        if calib_path is not None and calib_path.exists():
+            z = np.load(calib_path)
+            agent.brain.bias = z["bias"].astype(np.float32)
+            agent.brain.v_th = z["v_th"].astype(np.float32)
+        else:
+            m0 = Mario(); agent.calibrate(m0, iters=30); m0.env.close()
+        stages = stages or [f"{w}-{t}" for w in range(1, 9) for t in range(1, 5)]
+        si = 0
+        mario = Mario(f"SuperMarioBros-{stages[si]}-v0")
 
         Wr = np.load(policy_path)["Wr"] if policy_path.exists() else None
         if Wr is None:
@@ -56,7 +88,7 @@ def play_loop(policy_path: Path, brain_steps: int, frame_skip: int, quality: int
             rng = np.random.default_rng(0)
             Wr = rng.normal(0, 0.05, (agent.n_feat + 1, agent.n_actions)).astype(np.float32)
 
-        pools = {"photoreceptors": agent.photo, "optic lobe": agent.ol1}
+        pools = {"photoreceptors": agent.photo, "optic lobe": agent.grid_idx}
         with LOCK:
             STATE["ready"] = True
 
@@ -85,6 +117,8 @@ def play_loop(policy_path: Path, brain_steps: int, frame_skip: int, quality: int
                 FRAME["jpeg"] = buf.getvalue()
                 FRAME["retina"] = rbuf.getvalue()
                 STATE.update({
+                    "stage": stages[si], "split": SPLIT.get(stages[si], ""),
+                    "stage_baseline": _baseline(stages[si]),
                     "action": int(a), "action_name": ACTIONS[a],
                     "x": int(info.get("x_pos", 0)), "max_x": int(mario.max_x),
                     "best_ever": int(best), "episode": ep,
@@ -93,10 +127,25 @@ def play_loop(policy_path: Path, brain_steps: int, frame_skip: int, quality: int
                     "activity": {k: round(float((tr[v] > 0).mean()), 4)
                                  for k, v in pools.items()},
                 })
+            if info.get("flag_get"):
+                with LOCK:
+                    STATE.setdefault("completed", [])
+                    if stages[si] not in STATE["completed"]:
+                        STATE["completed"].append(stages[si])
             if mario.done:
+                # One attempt per stage, then on to the next: the page walks the
+                # whole game rather than replaying the level it learned best.
                 ep += 1
+                with LOCK:
+                    STATE.setdefault("results", {})[stages[si]] = {
+                        "x": int(mario.max_x), "base": _baseline(stages[si]),
+                        "split": SPLIT.get(stages[si], "")}
+                si = (si + 1) % len(stages)
+                mario.env.close()
+                mario = Mario(f"SuperMarioBros-{stages[si]}-v0")
                 retina = mario.reset()
                 agent.brain.reset(); agent.prev_px = None
+                agent.prev_grid = np.zeros(agent.n_grid, dtype=np.float32)
         mario.env.close()
     except Exception as exc:
         with LOCK:
@@ -146,15 +195,18 @@ class Server(socketserver.ThreadingTCPServer):
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8095)
-    ap.add_argument("--policy", default=str(ROOT / "out" / "mario_policy.npz"))
-    ap.add_argument("--brain-steps", type=int, default=4)
-    ap.add_argument("--frame-skip", type=int, default=4)
+    ap.add_argument("--policy", default=str(ROOT / "out" / "mario_final_policy.npz"))
+    ap.add_argument("--calibration",
+                    default=str(ROOT / "out" / "mario_final_calibration.npz"))
+    ap.add_argument("--brain-steps", type=int, default=3)
+    ap.add_argument("--frame-skip", type=int, default=6)
     ap.add_argument("--quality", type=int, default=82)
     args = ap.parse_args()
 
     t = threading.Thread(target=play_loop,
                          args=(Path(args.policy), args.brain_steps,
-                               args.frame_skip, args.quality), daemon=True)
+                               args.frame_skip, args.quality,
+                               Path(args.calibration)), daemon=True)
     t.start()
     web = ROOT / "out" / "scene"
     handler = lambda *a, **k: Handler(*a, directory=str(web), **k)  # noqa: E731

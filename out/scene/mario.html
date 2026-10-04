@@ -78,6 +78,15 @@
   .fig span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
   .fig b{font-family:ui-monospace,monospace;font-weight:400;font-size:19px;
          font-variant-numeric:tabular-nums}
+  .grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px}
+  .cell{aspect-ratio:1.6;background:#0d1015;position:relative;display:flex;
+        align-items:center;justify-content:center;font-family:ui-monospace,monospace;
+        font-size:10px;color:var(--faint)}
+  .cell.test{outline:1px solid var(--paper);outline-offset:-1px}
+  .cell.now{box-shadow:0 0 0 2px #7fd98a inset}
+  .cell b{position:absolute;right:3px;top:1px;font-size:10px;color:#7fd98a;font-weight:400}
+  .legend{font-size:11px;color:var(--faint);line-height:1.6;margin:10px 0 0}
+  .legend b{color:var(--paper);font-weight:400}
   footer{font-size:10.5px;color:var(--faint);line-height:1.75;border-top:1px solid var(--line);
          padding-top:14px}
   .boot{font-size:12px;color:var(--faint)}
@@ -90,7 +99,8 @@
     <h1>A Fly Plays <em>Mario</em></h1>
     <p>92,743 neurons and 3.7 million synapses of a real <i>Drosophila</i> connectome,
        spiking right now on this machine. It sees the screen through its photoreceptors
-       and presses the buttons itself. Nothing here is a recording.</p>
+       and presses the buttons itself, and it is working through all 32 stages of the
+       game — including five it was never trained on. Nothing here is a recording.</p>
   </header>
 
   <div class="stage">
@@ -129,16 +139,21 @@
   </div>
 
   <div class="card">
-    <h2>How far it gets, against the honest baselines</h2>
+    <h2>This stage, against random play on the same stage</h2>
     <div class="bars">
-      <div class="bar"><span>best single button</span><span class="t"><i id="b-const"></i></span><span class="n" id="n-const">315</span></div>
-      <div class="bar"><span>random buttons</span><span class="t"><i id="b-rand"></i></span><span class="n" id="n-rand">579</span></div>
+      <div class="bar"><span>random buttons</span><span class="t"><i id="b-rand"></i></span><span class="n" id="n-rand">—</span></div>
       <div class="bar me"><span>this fly</span><span class="t"><i id="b-fly"></i></span><span class="n" id="n-fly">—</span></div>
     </div>
+    <h2 style="margin-top:22px">All 32 stages</h2>
+    <div class="grid" id="grid"></div>
+    <p class="legend">Each cell is one stage, shaded by distance relative to random play on
+      that stage. Outlined cells are stages the fly was <b>never trained on</b>. A flag
+      means it reached the end.</p>
     <div class="figs">
       <div class="fig"><span>Distance now</span><b id="f-x">—</b></div>
       <div class="fig"><span>Best this run</span><b id="f-best">—</b></div>
-      <div class="fig"><span>Attempt</span><b id="f-ep">—</b></div>
+      <div class="fig"><span>Stage</span><b id="f-stage">—</b></div>
+      <div class="fig"><span>Completed</span><b id="f-done">0</b></div>
       <div class="fig"><span>Frames / s</span><b id="f-fps">—</b></div>
       <div class="fig"><span>Neurons</span><b id="f-n">—</b></div>
     </div>
@@ -164,10 +179,19 @@
     var el=document.createElement("span"); el.className="btn"; el.id="btn-"+i;
     el.textContent=b; holder.appendChild(el);
   });
-  var MAXX=3200;   // level 1-1 is about this wide
-  function pct(v){ return Math.max(0,Math.min(100,v/MAXX*100))+"%"; }
-  document.getElementById("b-const").style.width=pct(315);
-  document.getElementById("b-rand").style.width=pct(579);
+  var STAGES=[]; for(var w=1;w<=8;w++)for(var s=1;s<=4;s++)STAGES.push(w+"-"+s);
+  var TEST={"5-1":1,"6-1":1,"7-1":1,"2-3":1,"8-1":1};
+  var gridEl=document.getElementById("grid");
+  STAGES.forEach(function(st){
+    var c=document.createElement("div"); c.className="cell"+(TEST[st]?" test":"");
+    c.id="c-"+st; c.textContent=st; gridEl.appendChild(c);
+  });
+  function shade(ratio){
+    // 1.0 = random. Below random greys, above it warms toward amber.
+    var k=Math.max(0,Math.min(1,(ratio-0.5)/2.5));
+    var r=Math.round(13+k*204), g=Math.round(16+k*130), b=Math.round(21+k*26);
+    return "rgb("+r+","+g+","+b+")";
+  }
 
   var img=document.getElementById("screen"), ret=document.getElementById("retina");
   var busy=false;
@@ -189,7 +213,8 @@
       if(s.error){ document.getElementById("boot").textContent=" — backend error: "+s.error; return; }
       if(!s.ready){ document.getElementById("tag").textContent="calibrating the brain…";
                     setTimeout(poll,600); return; }
-      document.getElementById("tag").textContent="attempt "+s.episode+" · x "+s.x;
+      document.getElementById("tag").textContent="stage "+s.stage+
+        (s.split?" · "+s.split:"")+" · x "+s.x;
       for(var i=0;i<BUTTONS.length;i++)
         document.getElementById("btn-"+i).className="btn"+(i===s.action?" on":"");
       var ph=(s.activity["photoreceptors"]||0), ol=(s.activity["optic lobe"]||0);
@@ -200,11 +225,25 @@
       var sp=Math.min(1,(s.spikes||0)/8000);
       document.getElementById("m-spk").style.width=(sp*100)+"%";
       document.getElementById("v-spk").textContent=(s.spikes||0).toLocaleString();
-      document.getElementById("b-fly").style.width=pct(s.max_x);
-      document.getElementById("n-fly").textContent=s.max_x;
+      var base=s.stage_baseline||1, scale=Math.max(base*3, s.max_x*1.1, 1);
+      document.getElementById("b-rand").style.width=(base/scale*100)+"%";
+      document.getElementById("n-rand").textContent=Math.round(base);
+      document.getElementById("b-fly").style.width=(s.max_x/scale*100)+"%";
+      document.getElementById("n-fly").textContent=s.max_x+"  ("+(s.max_x/base).toFixed(2)+"x)";
+      STAGES.forEach(function(st){
+        var c=document.getElementById("c-"+st); if(!c) return;
+        c.className="cell"+(TEST[st]?" test":"")+(st===s.stage?" now":"");
+        var r=(s.results||{})[st];
+        if(r){ c.style.background=shade(r.x/(r.base||1));
+               c.title=st+": "+r.x+" ("+(r.x/(r.base||1)).toFixed(2)+"x random)"; }
+        if((s.completed||[]).indexOf(st)>=0 && !c.querySelector("b")){
+          var f=document.createElement("b"); f.textContent="⚑"; c.appendChild(f); }
+      });
+      document.getElementById("f-stage").textContent=s.stage||"—";
+      document.getElementById("f-done").textContent=(s.completed||[]).length+" / 32";
       document.getElementById("f-x").textContent=s.x;
       document.getElementById("f-best").textContent=s.best_ever;
-      document.getElementById("f-ep").textContent=s.episode;
+
       document.getElementById("f-fps").textContent=s.fps;
       if(s.neurons) document.getElementById("f-n").textContent=s.neurons.toLocaleString();
       setTimeout(poll,120);

@@ -59,6 +59,7 @@ class Mario:
         self.info = info or {}
         self.done = False
         self.max_x = 0
+        self._last_x = None          # anchored on the first real reading
         return self.observe()
 
     def step(self, action: int):
@@ -66,7 +67,23 @@ class Mario:
         self.frame = np.asarray(obs)
         self.info = info
         self.done = bool(term or trunc)
-        self.max_x = max(self.max_x, int(info.get("x_pos", 0)))
+        # x_pos is two RAM bytes, and during some transitions (seen on 4-4) they
+        # read as garbage up to 0xFFFF. Taken at face value one such frame
+        # scored a run at 81x random. Mario cannot move more than a few pixels
+        # a frame, so an implausible jump is treated as a glitch, not progress.
+        x = int(info.get("x_pos", 0))
+        if x > 5000:
+            pass                        # garbage bytes: no level is this long
+        elif self._last_x is None or not (0 <= x - self._last_x <= 24):
+            # First reading, a pipe warp or a respawn: re-anchor here without
+            # counting the jump. An earlier version only scored small steps
+            # from 0, so the level's own starting offset locked it out and
+            # every run scored zero.
+            self._last_x = x
+            self.max_x = max(self.max_x, x) if self.max_x == 0 else self.max_x
+        else:
+            self.max_x = max(self.max_x, x)
+            self._last_x = x
         return self.observe(), float(reward), self.done, info
 
     # ------------------------------------------------------------------

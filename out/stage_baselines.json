@@ -1,0 +1,130 @@
+{
+ "SuperMarioBros-1-1-v0": {
+  "mean": 655.375,
+  "max": 724
+ },
+ "SuperMarioBros-1-2-v0": {
+  "mean": 614.0,
+  "max": 954
+ },
+ "SuperMarioBros-1-3-v0": {
+  "mean": 318.25,
+  "max": 417
+ },
+ "SuperMarioBros-1-4-v0": {
+  "mean": 324.5,
+  "max": 548
+ },
+ "SuperMarioBros-2-1-v0": {
+  "mean": 378.375,
+  "max": 531
+ },
+ "SuperMarioBros-2-2-v0": {
+  "mean": 1223.25,
+  "max": 1235
+ },
+ "SuperMarioBros-2-3-v0": {
+  "mean": 738.375,
+  "max": 1103
+ },
+ "SuperMarioBros-2-4-v0": {
+  "mean": 316.625,
+  "max": 340
+ },
+ "SuperMarioBros-3-1-v0": {
+  "mean": 438.25,
+  "max": 500
+ },
+ "SuperMarioBros-3-2-v0": {
+  "mean": 477.875,
+  "max": 1083
+ },
+ "SuperMarioBros-3-3-v0": {
+  "mean": 299.375,
+  "max": 338
+ },
+ "SuperMarioBros-3-4-v0": {
+  "mean": 283.5,
+  "max": 350
+ },
+ "SuperMarioBros-4-1-v0": {
+  "mean": 323.0,
+  "max": 326
+ },
+ "SuperMarioBros-4-2-v0": {
+  "mean": 226.25,
+  "max": 343
+ },
+ "SuperMarioBros-4-3-v0": {
+  "mean": 373.5,
+  "max": 425
+ },
+ "SuperMarioBros-4-4-v0": {
+  "mean": 203.125,
+  "max": 627
+ },
+ "SuperMarioBros-5-1-v0": {
+  "mean": 528.625,
+  "max": 805
+ },
+ "SuperMarioBros-5-2-v0": {
+  "mean": 532.625,
+  "max": 866
+ },
+ "SuperMarioBros-5-3-v0": {
+  "mean": 235.875,
+  "max": 300
+ },
+ "SuperMarioBros-5-4-v0": {
+  "mean": 316.625,
+  "max": 340
+ },
+ "SuperMarioBros-6-1-v0": {
+  "mean": 461.0,
+  "max": 932
+ },
+ "SuperMarioBros-6-2-v0": {
+  "mean": 290.375,
+  "max": 291
+ },
+ "SuperMarioBros-6-3-v0": {
+  "mean": 313.5,
+  "max": 399
+ },
+ "SuperMarioBros-6-4-v0": {
+  "mean": 280.625,
+  "max": 444
+ },
+ "SuperMarioBros-7-1-v0": {
+  "mean": 330.125,
+  "max": 435
+ },
+ "SuperMarioBros-7-2-v0": {
+  "mean": 879.125,
+  "max": 1235
+ },
+ "SuperMarioBros-7-3-v0": {
+  "mean": 624.875,
+  "max": 1111
+ },
+ "SuperMarioBros-7-4-v0": {
+  "mean": 325.625,
+  "max": 354
+ },
+ "SuperMarioBros-8-1-v0": {
+  "mean": 418.25,
+  "max": 547
+ },
+ "SuperMarioBros-8-2-v0": {
+  "mean": 263.0,
+  "max": 350
+ },
+ "SuperMarioBros-8-3-v0": {
+  "mean": 394.0,
+  "max": 531
+ },
+ "SuperMarioBros-8-4-v0": {
+  "mean": 156.5,
+  "max": 172
+ }
+}

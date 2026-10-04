@@ -277,6 +277,72 @@ activity actually carries task information is a cheap test, and it is the test
 that is missing from every "fly brain plays X" demo — including, until it was
 run, this one.
 
+## Super Mario Bros: one level yes, the game no
+
+Subway Surfers was a poor target: closed, Android-only, full of adverts and menus.
+The NES emulator (`gym-super-mario-bros`) is a library instead -- headless at ~574
+fps, restartable with a function call, and it reports Mario's distance
+continuously. The brain is the same one as everywhere else: 92,743 neurons and
+3.69M synapses of photoreceptors plus optic lobe, with each neuron's resting drive
+fitted against Mario's own frames. Only a linear map from pooled optic-lobe
+activity to the seven buttons is learned, by evolution, because Mario has no
+oracle to imitate.
+
+**Level 1-1 works.** The evolved readout reaches x = 1944 (the level is ~3,200
+wide). Random buttons average 539 and never beat 723 in 25 runs; every single
+held button stalls at the first pipe (<= 315). Vision is doing real work:
+forcing the retina to zero drops 1-1 from 1678 to 898, 2-1 from 640 to 308 and
+3-1 from 1269 to 567. On 4-1 sighted and blind play are identical, so there it
+uses no vision at all.
+
+**Mario's imagery survives the optic lobe far better than the runner's did.**
+Decoding where contrast sits in the visual field: 98% at the retina, 96% at the
+first synapse, 87% across the optic lobe -- then 44% at the visual projection
+neurons and chance in the central brain, Kenyon cells and descending neurons.
+So the readout reads the optic lobe because that is where the signal is.
+
+**It does not generalise.** Every attempt to train across levels failed on the
+levels it had not seen:
+
+| training | trained stages | never-seen stages |
+|---|---|---|
+| 4 stages | 2.1x random | 0.97x random |
+| 22 stages, 831 generations overnight | 1.20x random | **0.88x random** |
+
+Scores are distance divided by that stage's own random-play average (8 runs per
+stage, all 32 measured), so 1.0 means as good as mashing buttons. The overnight
+run split the game three ways -- 22 stages to train on, 5 to choose the
+checkpoint (5-1/6-1/7-1/2-3/8-1 were the test set, 1-3/3-2/4-1/6-2/7-3 the
+validation set) -- and its validation score of 1.61x was the best of about a
+hundred checks on the same five stages, which is why it did not survive contact
+with the test set.
+
+Why it fails is visible in the policy. Its decisions win by a wide margin
+(median logit gap 2.1-3.4), so the weight changes evolution makes almost never
+flip one: per-stage scores on most levels were *identical* before and after 831
+generations. And it dies early -- 20 decisions into 1-1 rather than the 1944 the
+single-level policy reached. A linear readout over this optic lobe, trained by
+evolution, can memorise a level but not learn the game. Getting further would
+take a nonlinear readout trained with reinforcement learning on far more play
+than was spent here.
+
+Two bugs worth knowing about if you build on this:
+
+- **Mario's position can read as 0xFFFF.** `x_pos` is two RAM bytes and during
+  some transitions (seen on 4-4) they read as garbage. Taking the maximum
+  position at face value scored one run at 81x random. `Mario.step` now ignores
+  readings above 5,000 and any implausible jump.
+- **nes-py and gym-super-mario-bros predate numpy 2.** `uint8 * 1024` and
+  `byte * 0x100` overflow instead of widening, and old gym references
+  `np.bool8`. Patched in the installed packages and shimmed in `src/nes/mario.py`.
+
+Run it live, walking all 32 stages with the final policy, at
+`http://localhost:8095/mario.html`:
+
+```bash
+python -u src/nes/mario_server.py --port 8095
+```
+
 ## Where the model departs from biology
 
 Stated plainly, because these are the things that would matter to anyone

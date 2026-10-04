@@ -205,74 +205,112 @@ class MarioFly:
         return mario.max_x
 
 
+ALL_STAGES = [f"SuperMarioBros-{w}-{t}-v0" for w in range(1, 9) for t in range(1, 5)]
+HELD_OUT = ["SuperMarioBros-5-1-v0", "SuperMarioBros-6-1-v0",
+            "SuperMarioBros-7-1-v0", "SuperMarioBros-2-3-v0",
+            "SuperMarioBros-8-1-v0"]
+TRAIN_POOL = [s for s in ALL_STAGES if s not in HELD_OUT]
+
+
+_BASELINES = None
+
+
+def stage_baseline(level: str) -> float:
+    """Random-play mean distance on a stage, measured once and cached.
+
+    Stages differ wildly in how far random play gets you -- 2-2 averages 1223,
+    1-3 averages 318 -- so raw distance compared across different stages mostly
+    measures which stage was drawn. Scoring relative to each stage's own random
+    baseline makes 1.0 mean "as good as mashing buttons" everywhere.
+    """
+    global _BASELINES
+    if _BASELINES is None:
+        f = OUT / "stage_baselines.json"
+        _BASELINES = json.loads(f.read_text()) if f.exists() else {}
+    b = _BASELINES.get(level, {}).get("mean")
+    return float(b) if b and b > 0 else 400.0
+
+
 def evaluate(agent: MarioFly, levels, W, max_frames=3000) -> float:
-    """Mean distance over a fixed set of stages.
+    """Mean of distance / random-baseline over a set of stages.
+
+    1.0 means random-level play, 2.0 twice as far as random. A raw-distance
+    version of this scored a candidate drawn onto easy stages above a better one
+    drawn onto hard ones, which turned selection into a lottery: 27 of 30
+    generations "improved" while the step size inflated to its ceiling.
 
     Scoring on several stages is the whole point: optimising a single
     deterministic level rewards memorising a button sequence, and the agent that
     results does nothing anywhere else. A fixed set keeps the comparison between
     candidates fair -- a different draw each time would mostly measure luck.
     """
-    xs = []
+    rs = []
     for lv in levels:
         m = Mario(lv)
-        xs.append(agent.episode(m, W, max_frames=max_frames))
+        x = agent.episode(m, W, max_frames=max_frames)
         m.env.close()
-    return float(np.mean(xs))
+        rs.append(x / stage_baseline(lv))
+    return float(np.mean(rs))
 
 
 def evolve(agent: MarioFly, mario: Mario, generations: int, pop: int,
-           sigma: float, lr: float, eps_per: int, seed: int = 0):
-    """Elitist (1+lambda) evolution strategy on the readout weights.
+           sigma: float, lr: float, eps_per: int, seed: int = 0,
+           stage_pool=None, stages_per_gen: int = 3, ckpt: Path | None = None,
+           start_W=None, start_best: float = -1.0):
+    """Elitist (1+lambda) ES, scored on stages redrawn every generation.
 
-    The weighted-sum update used by OpenAI-style ES averages the whole
-    population, which on a rugged landscape walks away from good solutions: a
-    run of it found a candidate worth 1506 and then drifted back to 297. Level
-    1-1 is deterministic, so a weight set that scores well scores well every
-    time and there is no reason to average it away. This keeps the best thing
-    found so far and only ever replaces it with something strictly better, so
-    the curve cannot go backwards.
+    Two things matter here beyond the usual. The stages are resampled each
+    generation from the whole game, so a weight set cannot survive by memorising
+    one level -- but they are held fixed *within* a generation, so candidates are
+    compared on equal ground rather than on who drew the easier draw. And because
+    the incumbent's score was measured on a different draw, it is re-scored on
+    the new one before being compared, otherwise the elite would be defended by a
+    number that no longer means anything.
 
-    Step size adapts: shrink after a generation that fails to improve, grow a
-    little after one that does, which concentrates the search once it is onto
-    something.
+    Progress is written to disk every generation: this is a run measured in hours
+    and it should not have to start over.
     """
     rng = np.random.default_rng(seed)
     d = agent.n_feat + 1
+    pool = stage_pool or TRAIN_POOL
 
-    levels = getattr(agent, "train_levels", None)
-
-    def score(W):
-        if levels:
-            return evaluate(agent, levels, W)
-        return float(np.mean([agent.episode(mario, W) for _ in range(eps_per)]))
-
-    best_W = rng.normal(0, 0.05, (d, agent.n_actions)).astype(np.float32)
-    best = score(best_W)
-    hist = [{"gen": 0, "best": best, "sigma": sigma}]
-    print(f"  gen  0  best x = {best:6.0f}")
+    best_W = start_W if start_W is not None else \
+        rng.normal(0, 0.05, (d, agent.n_actions)).astype(np.float32)
+    best = start_best
+    hist = []
     stale = 0
     for g in range(1, generations + 1):
         t0 = time.time()
-        gen_best, gen_best_W = -1.0, None
+        draw = [pool[i] for i in rng.choice(len(pool), stages_per_gen, replace=False)]
+        # Re-score the incumbent on this generation's stages, so the comparison
+        # is like for like.
+        best = evaluate(agent, draw, best_W)
+        # A candidate must beat the incumbent by a clear margin. Best-of-ten on
+        # one small draw nearly always edges out the incumbent by luck alone --
+        # 19 of 21 generations "improved" without any real trend -- and every
+        # such false improvement also inflated the step size.
+        gen_best, gen_best_W = best * 1.05, None
         for _ in range(pop):
             cand = best_W + sigma * rng.normal(0, 1, (d, agent.n_actions)).astype(np.float32)
-            s_ = score(cand)
+            s_ = evaluate(agent, draw, cand)
             if s_ > gen_best:
                 gen_best, gen_best_W = s_, cand
-        improved = gen_best > best
+        improved = gen_best_W is not None
         if improved:
             best, best_W = gen_best, gen_best_W
-            sigma = min(sigma * 1.15, 0.4)
-            stale = 0
+            sigma = min(sigma * 1.12, 0.45); stale = 0
         else:
             stale += 1
-            sigma = max(sigma * 0.82, 0.02)
-        hist.append({"gen": g, "best": best, "gen_best": gen_best,
+            sigma = max(sigma * 0.88, 0.03)
+            if stale >= 6:          # fully converged: re-open the search
+                sigma = 0.25; stale = 0
+        names = ",".join(x.split("-")[1] + "-" + x.split("-")[2] for x in draw)
+        print(f"  gen {g:3d}  {best:5.2f}x random on [{names}]   sigma {sigma:.3f}"
+              f"   ({time.time()-t0:.0f}s)" + ("  <-- improved" if improved else ""))
+        hist.append({"gen": g, "score": float(best), "stages": draw,
                      "sigma": float(sigma), "improved": bool(improved)})
-        print(f"  gen {g:2d}  best x = {best:6.0f}   this gen {gen_best:6.0f}"
-              f"   sigma {sigma:.3f}   ({time.time()-t0:.0f}s)"
-              + ("  <-- new best" if improved else ""))
+        if ckpt is not None:
+            np.savez_compressed(ckpt, Wr=best_W, best=best, gen=g)
     return best_W, hist
 
 
@@ -287,6 +325,8 @@ def main() -> None:
     ap.add_argument("--brain-steps", type=int, default=4)
     ap.add_argument("--frame-skip", type=int, default=4)
     ap.add_argument("--tag", default="mario")
+    ap.add_argument("--stages-per-gen", type=int, default=3)
+    ap.add_argument("--resume", action="store_true")
     ap.add_argument("--levels", default="1-1",
                     help="comma-separated stages to train on, e.g. 1-1,2-1,3-1,4-1. "
                          "Training on several is what stops it memorising one.")
@@ -296,9 +336,13 @@ def main() -> None:
     agent = MarioFly(brain_steps=args.brain_steps, frame_skip=args.frame_skip)
     print(f"  subnetwork {agent.n:,} neurons, {agent.W.nnz:,} synapses")
     print(f"  readout: {agent.n_feat} pooled features -> {agent.n_actions} buttons")
-    stages = [f"SuperMarioBros-{v.strip()}-v0" for v in args.levels.split(",")]
-    agent.train_levels = stages if len(stages) > 1 else None
-    if agent.train_levels:
+    if args.levels == "all":
+        stages = TRAIN_POOL
+        print(f"  training pool: {len(stages)} stages (all but {len(HELD_OUT)} held out)")
+        print(f"  held out for evaluation: "
+              + ", ".join(h.split('-')[1] + '-' + h.split('-')[2] for h in HELD_OUT))
+    else:
+        stages = [f"SuperMarioBros-{v.strip()}-v0" for v in args.levels.split(",")]
         print(f"  training across {len(stages)} stages: {args.levels}")
     mario = Mario(stages[0])
     print("calibrating on Mario's own frames ...")
@@ -307,11 +351,18 @@ def main() -> None:
 
     print("\nbaselines:  constant actions <= 315   random 579")
     print("evolving the readout on distance travelled:")
-    Wr, hist = evolve(agent, mario, args.generations, args.pop,
-                      args.sigma, args.lr, args.eps_per)
+    ckpt = OUT / f"{args.tag}_policy.npz"
+    start_W, start_best = None, -1.0
+    if args.resume and ckpt.exists():
+        z = np.load(ckpt); start_W = z["Wr"]; start_best = float(z["best"])
+        print(f"  resuming from {ckpt.name} at x={start_best:.0f} (gen {int(z['gen'])})")
+    Wr, hist = evolve(agent, mario, args.generations, args.pop, args.sigma,
+                      args.lr, args.eps_per, stage_pool=stages,
+                      stages_per_gen=args.stages_per_gen, ckpt=ckpt,
+                      start_W=start_W, start_best=start_best)
 
-    held_out = ["SuperMarioBros-5-1-v0", "SuperMarioBros-6-1-v0", "SuperMarioBros-7-1-v0"]
-    final = [agent.episode(Mario(lv), Wr) for lv in stages]
+    held_out = HELD_OUT
+    final = [agent.episode(Mario(lv), Wr) for lv in stages[:6]]
     unseen = [agent.episode(Mario(lv), Wr) for lv in held_out]
     print(f"\ntrained stages : {[int(v) for v in final]}  mean {np.mean(final):.0f}")
     print(f"never seen     : {[int(v) for v in unseen]}  mean {np.mean(unseen):.0f}")
