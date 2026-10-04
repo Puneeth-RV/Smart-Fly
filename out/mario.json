@@ -1,0 +1,195 @@
+{
+  "history": [
+    {
+      "gen": 0,
+      "best": 315.0,
+      "sigma": 0.15
+    },
+    {
+      "gen": 1,
+      "best": 812.0,
+      "gen_best": 812.0,
+      "sigma": 0.1725,
+      "improved": true
+    },
+    {
+      "gen": 2,
+      "best": 899.0,
+      "gen_best": 899.0,
+      "sigma": 0.19837499999999997,
+      "improved": true
+    },
+    {
+      "gen": 3,
+      "best": 1123.0,
+      "gen_best": 1123.0,
+      "sigma": 0.22813124999999995,
+      "improved": true
+    },
+    {
+      "gen": 4,
+      "best": 1123.0,
+      "gen_best": 899.0,
+      "sigma": 0.18706762499999996,
+      "improved": false
+    },
+    {
+      "gen": 5,
+      "best": 1129.0,
+      "gen_best": 1129.0,
+      "sigma": 0.21512776874999995,
+      "improved": true
+    },
+    {
+      "gen": 6,
+      "best": 1129.0,
+      "gen_best": 688.0,
+      "sigma": 0.17640477037499994,
+      "improved": false
+    },
+    {
+      "gen": 7,
+      "best": 1129.0,
+      "gen_best": 724.0,
+      "sigma": 0.14465191170749994,
+      "improved": false
+    },
+    {
+      "gen": 8,
+      "best": 1129.0,
+      "gen_best": 810.0,
+      "sigma": 0.11861456760014995,
+      "improved": false
+    },
+    {
+      "gen": 9,
+      "best": 1129.0,
+      "gen_best": 899.0,
+      "sigma": 0.09726394543212295,
+      "improved": false
+    },
+    {
+      "gen": 10,
+      "best": 1130.0,
+      "gen_best": 1130.0,
+      "sigma": 0.11185353724694139,
+      "improved": true
+    },
+    {
+      "gen": 11,
+      "best": 1378.0,
+      "gen_best": 1378.0,
+      "sigma": 0.12863156783398258,
+      "improved": true
+    },
+    {
+      "gen": 12,
+      "best": 1378.0,
+      "gen_best": 1124.0,
+      "sigma": 0.1054778856238657,
+      "improved": false
+    },
+    {
+      "gen": 13,
+      "best": 1428.0,
+      "gen_best": 1428.0,
+      "sigma": 0.12129956846744555,
+      "improved": true
+    },
+    {
+      "gen": 14,
+      "best": 1678.0,
+      "gen_best": 1678.0,
+      "sigma": 0.13949450373756236,
+      "improved": true
+    },
+    {
+      "gen": 15,
+      "best": 1678.0,
+      "gen_best": 1124.0,
+      "sigma": 0.11438549306480113,
+      "improved": false
+    },
+    {
+      "gen": 16,
+      "best": 1678.0,
+      "gen_best": 712.0,
+      "sigma": 0.09379610431313692,
+      "improved": false
+    },
+    {
+      "gen": 17,
+      "best": 1678.0,
+      "gen_best": 1129.0,
+      "sigma": 0.07691280553677228,
+      "improved": false
+    },
+    {
+      "gen": 18,
+      "best": 1678.0,
+      "gen_best": 1131.0,
+      "sigma": 0.06306850054015327,
+      "improved": false
+    },
+    {
+      "gen": 19,
+      "best": 1678.0,
+      "gen_best": 1129.0,
+      "sigma": 0.051716170442925674,
+      "improved": false
+    },
+    {
+      "gen": 20,
+      "best": 1678.0,
+      "gen_best": 1434.0,
+      "sigma": 0.04240725976319905,
+      "improved": false
+    },
+    {
+      "gen": 21,
+      "best": 1678.0,
+      "gen_best": 1125.0,
+      "sigma": 0.03477395300582322,
+      "improved": false
+    },
+    {
+      "gen": 22,
+      "best": 1678.0,
+      "gen_best": 1213.0,
+      "sigma": 0.028514641464775038,
+      "improved": false
+    },
+    {
+      "gen": 23,
+      "best": 1678.0,
+      "gen_best": 1436.0,
+      "sigma": 0.02338200600111553,
+      "improved": false
+    },
+    {
+      "gen": 24,
+      "best": 1678.0,
+      "gen_best": 1414.0,
+      "sigma": 0.02,
+      "improved": false
+    },
+    {
+      "gen": 25,
+      "best": 1678.0,
+      "gen_best": 1130.0,
+      "sigma": 0.02,
+      "improved": false
+    },
+    {
+      "gen": 26,
+      "best": 1678.0,
+      "gen_best": 1528.0,
+      "sigma": 0.02,
+      "improved": false
+    }
+  ],
+  "final_mean": 1678.0,
+  "final_best": 1678,
+  "random_baseline": 579,
+  "best_constant": 315
+}

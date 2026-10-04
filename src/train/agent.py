@@ -52,7 +52,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from brain.lif import ConnectomeBrain, LIFConfig  # noqa: E402
-from gym.subway import N_ACTIONS, RETINA_H, RETINA_W, SubwayEnv  # noqa: E402
+from runner.subway import N_ACTIONS, RETINA_H, RETINA_W, SubwayEnv  # noqa: E402
 
 
 @dataclass

@@ -43,7 +43,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from android.bridge import ACTION_NAMES, AndroidGame, DeviceConfig  # noqa: E402
 from android.fastcapture import FastCapture  # noqa: E402
 from brain.lif import LIFConfig, homeostatic_bias, load_connectome  # noqa: E402
-from gym.subway import SubwayEnv  # noqa: E402
+from runner.subway import SubwayEnv  # noqa: E402
 from train.agent import AgentConfig, FlyAgent  # noqa: E402
 from train.probe import oracle  # noqa: E402
 

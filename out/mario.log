@@ -1,0 +1,43 @@
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+Users of this version of Gym should be able to simply replace 'import gym' with 'import gymnasium as gym' in the vast majority of cases.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+building brain ...
+  subnetwork 92,743 neurons, 3,691,425 synapses
+  readout: 160 pooled features -> 7 buttons
+calibrating on Mario's own frames ...
+  15.4 Hz, silent 77%
+
+baselines:  constant actions <= 315   random 579
+evolving the readout on distance travelled:
+  gen  0  best x =    315
+  gen  1  best x =    812   this gen    812   sigma 0.172   (50s)  <-- new best
+  gen  2  best x =    899   this gen    899   sigma 0.198   (53s)  <-- new best
+  gen  3  best x =   1123   this gen   1123   sigma 0.228   (38s)  <-- new best
+  gen  4  best x =   1123   this gen    899   sigma 0.187   (42s)
+  gen  5  best x =   1129   this gen   1129   sigma 0.215   (25s)  <-- new best
+  gen  6  best x =   1129   this gen    688   sigma 0.176   (53s)
+  gen  7  best x =   1129   this gen    724   sigma 0.145   (34s)
+  gen  8  best x =   1129   this gen    810   sigma 0.119   (41s)
+  gen  9  best x =   1129   this gen    899   sigma 0.097   (45s)
+  gen 10  best x =   1130   this gen   1130   sigma 0.112   (42s)  <-- new best
+  gen 11  best x =   1378   this gen   1378   sigma 0.129   (58s)  <-- new best
+  gen 12  best x =   1378   this gen   1124   sigma 0.105   (37s)
+  gen 13  best x =   1428   this gen   1428   sigma 0.121   (49s)  <-- new best
+  gen 14  best x =   1678   this gen   1678   sigma 0.139   (40s)  <-- new best
+  gen 15  best x =   1678   this gen   1124   sigma 0.114   (50s)
+  gen 16  best x =   1678   this gen    712   sigma 0.094   (24s)
+  gen 17  best x =   1678   this gen   1129   sigma 0.077   (43s)
+  gen 18  best x =   1678   this gen   1131   sigma 0.063   (36s)
+  gen 19  best x =   1678   this gen   1129   sigma 0.052   (26s)
+  gen 20  best x =   1678   this gen   1434   sigma 0.042   (40s)
+  gen 21  best x =   1678   this gen   1125   sigma 0.035   (42s)
+  gen 22  best x =   1678   this gen   1213   sigma 0.029   (42s)
+  gen 23  best x =   1678   this gen   1436   sigma 0.023   (46s)
+  gen 24  best x =   1678   this gen   1414   sigma 0.020   (45s)
+  gen 25  best x =   1678   this gen   1130   sigma 0.020   (37s)
+  gen 26  best x =   1678   this gen   1528   sigma 0.020   (38s)
+
+final: mean x 1678, best 1678, over 10 episodes
+       random 579 | best constant 315
+wrote /Users/puneethrv/Auraspace/SmartFly/out/mario_policy.npz

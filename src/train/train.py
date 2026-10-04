@@ -31,7 +31,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from brain.lif import LIFConfig, calibrate_gain, load_connectome, sensorimotor_subgraph  # noqa: E402
-from gym.subway import N_ACTIONS, SubwayEnv, random_rollout  # noqa: E402
+from runner.subway import N_ACTIONS, SubwayEnv, random_rollout  # noqa: E402
 from train.agent import AgentConfig, FlyAgent  # noqa: E402
 
 OUT = ROOT / "out"

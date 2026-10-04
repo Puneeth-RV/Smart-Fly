@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from brain.lif import LIFConfig, calibrate_gain, load_connectome  # noqa: E402
-from gym.subway import SubwayEnv  # noqa: E402
+from runner.subway import SubwayEnv  # noqa: E402
 from train.agent import AgentConfig, FlyAgent  # noqa: E402
 
 ACTIONS = ["·", "◀", "▶", "▲", "▼"]

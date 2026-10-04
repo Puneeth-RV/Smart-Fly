@@ -33,7 +33,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from brain.lif import LIFConfig, calibrate_gain, load_connectome  # noqa: E402
-from gym.subway import (A_JUMP, A_LEFT, A_NONE, A_RIGHT, A_ROLL, HIGH, LOW,  # noqa: E402
+from runner.subway import (A_JUMP, A_LEFT, A_NONE, A_RIGHT, A_ROLL, HIGH, LOW,  # noqa: E402
                         N_ACTIONS, N_LANES, SubwayEnv, TRAIN)
 from train.agent import AgentConfig, FlyAgent  # noqa: E402
 

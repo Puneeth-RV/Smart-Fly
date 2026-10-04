@@ -38,7 +38,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from brain.lif import LIFConfig, homeostatic_bias, load_connectome  # noqa: E402
-from gym.subway import RETINA_H, RETINA_W, SubwayEnv  # noqa: E402
+from runner.subway import RETINA_H, RETINA_W, SubwayEnv  # noqa: E402
 from train.agent import AgentConfig, FlyAgent  # noqa: E402
 from train.probe import oracle  # noqa: E402
 
