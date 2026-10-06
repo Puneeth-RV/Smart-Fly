@@ -69,7 +69,8 @@ button { font: inherit; color: inherit; }
 .theme button { font-size: 12.5px; padding: 4px 9px; border-radius: 5px; }
 .theme button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 @media (max-width: 640px) {
-  .top-row { flex-wrap: wrap; height: auto; padding: 10px 0; gap: 10px 14px; }
+  .top-row { flex-wrap: wrap; height: auto; padding-block: 10px; gap: 10px 14px; }
+  .theme { margin-left: auto; }
   .tabs { order: 3; width: 100%; }
   .tabs button { flex: 1; }
 }
