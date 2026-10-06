@@ -151,10 +151,13 @@ class Channel:
                 for _ in range(agent.brain_steps):
                     sp = agent.brain.step(agent.ext)
                     fired |= sp[raster_ids]
-                    active += int(sp.sum())
+                    active = int(sp.sum())         # at the last step, not summed over steps
                 f = agent.features()
                 deep, motion = f[:ng].copy(), f[ng:2 * ng].copy()
                 first = f[2 * ng + 24:3 * ng + 24].copy() if agent.graded else None
+                # The photoreceptors' own activity laid out as the eye's pixel map
+                # (graded fly only): the neurons, as distinct from the image fed to them.
+                photo = f[3 * ng + 24:].copy() if agent.graded else None
                 obs = mem.reset(f) if a is None else mem.push(f, a)
                 x = np.clip((obs - mean) / np.sqrt(var + 1e-8), -6, 6).astype(np.float32)
                 xt = torch.from_numpy(x)[None].requires_grad_(True)
@@ -203,6 +206,7 @@ class Channel:
                         "eye": r3(eye.ravel()), "eye_shape": list(eye.shape),
                         "deep": r3(deep), "motion": r3(motion),
                         "first": None if first is None else r3(first),
+                        "photo": None if photo is None else r3(photo),
                         "grid": [20, 16], "attention": r3(sal),
                         "raster": np.flatnonzero(fired).tolist(), "raster_n": int(raster_ids.size),
                         "active": active, "t": time.time(),
