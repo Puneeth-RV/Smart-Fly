@@ -33,3 +33,14 @@ out/baselines.log
 out/marioall*.log
 out/marioall_policy.npz
 out/mario_final_latest.npz
+
+# PPO scratch: earlier runs, probe sweeps, viewer logs (final run and results kept)
+out/ppo_fly_11*
+out/ppo_fly_w1*
+out/ppo_fly_v2_snap.pt
+out/ppo_fly_v2.log
+out/next_after_11.sh
+out/probe_*.txt
+out/probe_vision_*.json
+!out/probe_vision_v2.json
+out/watch*.log

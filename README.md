@@ -343,6 +343,79 @@ Run it live, walking all 32 stages with the final policy, at
 python -u src/nes/mario_server.py --port 8095
 ```
 
+## Finishing 1-1 by sight: PPO, a fixed eye, graded neurons
+
+The evolved readout above could not finish a level. Three changes got the fly to
+the flag, each found by measuring rather than guessing.
+
+**1. Reinforcement learning instead of evolution** (`src/nes/ppo_fly.py`). PPO
+with a small actor-critic network on top of the frozen connectome, 8 emulators in
+parallel, a memory of the last 4 readouts and the last button pressed. The
+connectome is not trained; only the network that turns its activity into buttons.
+
+**2. The eye was 40% blind.** Photoreceptors carry no coordinates, so each is
+placed where the optic-lobe columns it synapses onto sit. Those columns are
+indexed on a *hexagonal* lattice, whose two axes are 60 degrees apart; treating
+them as x and y put the eye on a slanted band, and 40% of the screen -- most of
+the area ahead of and above Mario -- reached no photoreceptor at all. The eye was
+also the upright 15-wide x 24-tall shape inherited from the phone game. Now the
+axes are decorrelated, photoreceptors are tiled evenly over a wide 24 x 15 retina
+(3,354 photoreceptors, 9-11 per pixel, every pixel seen), and the optic-lobe
+maps use the same transform so they stay in register.
+
+**3. Spiking neurons were destroying the picture.** `src/nes/probe_vision.py`
+labels frames from the game's RAM (wall ahead, Goomba ahead) and asks how well a
+linear readout recovers each label from each layer, on held-out episodes
+(balanced accuracy, 50% = chance). For "wall ahead":
+
+| layer | spiking LIF | graded |
+|---|---|---|
+| retina (input) | 83% | 83% |
+| photoreceptors | 81% | 82% |
+| first synapse | 70% | 61-77% |
+| deeper optic lobe | 57-63% | 57-64% |
+| what the policy reads | 63% | **76%** |
+
+The signal is lost at every synapse after the photoreceptors, and giving the
+spiking brain 10 or 25 ms per frame instead of 3 did not help. Photoreceptors and
+most of the early optic lobe do not spike in a real fly; `GradedBrain` in
+`src/brain/lif.py` runs the same wiring as rectified, saturating rate units with
+a resting level, so that inhibitory input -- which is what photoreceptors send --
+can move them. Deeper layers still mix the image away: the connectome gives
+wiring but not synaptic strengths, which connectome-constrained models of the fly
+visual system (Lappalainen et al., Nature 2024) fit by training. The policy
+therefore reads the photoreceptors as a pixel map plus the first synapse and the
+deeper optic lobe.
+
+**Result, 10M frames (~4 h on a MacBook).** Training ended finishing 33 of its
+last 40 attempts. The real test is top-choice play (no sampling) with each
+episode started after a random 0-40 idle frames, so runs are not replays of one
+deterministic game (`src/nes/eval_vision.py`, 10 episodes each):
+
+| condition | flags | mean distance |
+|---|---|---|
+| sight | **4/10** | 2,445 |
+| blind (blank retina) | 0/10 | 304 |
+| scrambled (same pixels, random positions) | 0/10 | 85 |
+| random buttons | 0/10 | 653 |
+
+It plays by sight: blanking or scrambling the eye collapses it, scrambling to
+below random. But 4 of 10 is the honest number. Started from the identical state
+every time, it finishes every attempt -- that is one memorised trajectory, not
+reliability. Its failures sit around x = 1,780-2,470, the pits and Goomba groups
+in the second half. Next step: train with randomised starts so a memorised path
+stops paying.
+
+Watch training live, with the fly's eye, optic-lobe activity, neurons, where it
+is attending and every reward and punishment, at `http://localhost:8097/training.html`:
+
+```bash
+python -u src/nes/ppo_fly.py --v2 --brain-steps 6 --levels 1-1 --frames 10e6 --rollout 512 --tag ppo_fly_v2
+python -u src/nes/watch_training.py --tag ppo_fly_v2 --log out/ppo_fly_v2.log
+```
+
+The trained fly is `out/ppo_fly_v2.pt`.
+
 ## Where the model departs from biology
 
 Stated plainly, because these are the things that would matter to anyone

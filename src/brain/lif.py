@@ -577,3 +577,43 @@ def homeostatic_thresholds(
     return {"history": hist, "final": hist[-1],
             "v_th": {"min": float(brain.v_th.min()), "max": float(brain.v_th.max()),
                      "median": float(np.median(brain.v_th))}}
+
+
+class GradedBrain:
+    """The same wiring, run as graded (non-spiking) neurons.
+
+    Photoreceptors and most of the early optic lobe do not fire action
+    potentials; they signal with continuous voltage. Simulated as spiking units
+    at 30-50% activity, the visual signal was lost at every synapse: a linear
+    readout told "wall ahead" from photoreceptors at 81%, one synapse in at 70%,
+    deeper at ~60%. Here each neuron's output is a rectified, saturating rate
+    and nothing is thresholded into spikes. Connectome-constrained models of
+    the fly visual system (Lappalainen et al., Nature 2024) use units like these.
+
+    Exposes the same attributes the agent uses (step, trace, spikes, reset).
+    """
+
+    def __init__(self, W_pre: sp.csr_matrix, gain: float = 0.9, tau: float = 3.0):
+        self.Wt = W_pre.T.tocsr().astype(np.float32)
+        self.n = W_pre.shape[0]
+        self.gain = gain
+        self.alpha = float(1.0 - np.exp(-1.0 / tau))
+        self.bias = np.zeros(self.n, np.float32)
+        self.v_th = np.ones(self.n, np.float32)      # unused; kept for loaders
+        self.reset()
+
+    def reset(self) -> None:
+        self.v = np.zeros(self.n, np.float32)
+        self.trace = np.zeros(self.n, np.float32)
+        self.spikes = np.zeros(self.n, bool)
+        self.t = 0
+
+    def step(self, ext_current: np.ndarray | None = None) -> np.ndarray:
+        I = self.gain * self.Wt.dot(self.trace) + self.bias
+        if ext_current is not None:
+            I = I + ext_current
+        self.v += self.alpha * (I - self.v)
+        np.clip(self.v, 0.0, 1.0, out=self.trace)     # graded output
+        self.spikes = self.trace > 0.5                 # for display only
+        self.t += 1
+        return self.spikes

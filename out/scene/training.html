@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Fly Learns Mario</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap">
+<style>
+  [hidden]{display:none!important}
+  :root{color-scheme:dark;--ink:#0b0c0f;--panel:#13151a;--paper:#eceae6;--dim:#8d9097;
+        --faint:#5a5d64;--line:rgba(236,234,230,.14);--live:#7fd98a;--amber:#d9922f}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--ink)}
+  body{font-family:ui-sans-serif,-apple-system,"Helvetica Neue",Arial,sans-serif;color:var(--paper);
+       -webkit-font-smoothing:antialiased;padding-inline:24px;
+       padding-block:calc(env(safe-area-inset-top,0px) + 28px) calc(env(safe-area-inset-bottom,0px) + 34px)}
+  .wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+  .live{display:inline-flex;align-items:center;gap:7px;font-size:10.5px;letter-spacing:.14em;color:var(--live);margin-bottom:9px}
+  .live b{width:6px;height:6px;border-radius:50%;background:var(--live);display:block}
+  h1{font-family:"Newsreader",Georgia,serif;font-weight:400;font-size:clamp(28px,4.4vw,48px);line-height:1;margin:0;letter-spacing:-.012em}
+  h1 em{font-style:italic}
+  header p{margin:11px 0 0;max-width:64ch;font-size:13.5px;line-height:1.65;color:var(--dim)}
+  .stage{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);gap:20px;align-items:start}
+  @media (max-width:820px){.stage{grid-template-columns:1fr}}
+  .screen{background:#000;border:1px solid var(--line);position:relative;aspect-ratio:256/240;overflow:hidden}
+  .screen img{width:100%;height:100%;display:block;image-rendering:pixelated}
+  #heat{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;mix-blend-mode:screen;opacity:.85}
+  .tag{position:absolute;left:10px;top:9px;font-size:10px;letter-spacing:.12em;color:rgba(255,255,255,.75);text-shadow:0 1px 6px #000}
+  .won{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+       font-family:"Newsreader",Georgia,serif;font-size:clamp(28px,5vw,52px);color:#fff;
+       background:rgba(10,12,16,.45);text-shadow:0 2px 20px #000}
+  aside{display:flex;flex-direction:column;gap:16px}
+  .card{background:var(--panel);border:1px solid var(--line);padding:14px 15px}
+  .card h2{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 11px;font-weight:500}
+  .probs{display:flex;flex-direction:column;gap:7px}
+  .p{display:grid;grid-template-columns:78px 1fr 38px;align-items:center;gap:9px}
+  .p span{font-size:11.5px;color:var(--dim)}
+  .p.on span{color:var(--paper)}
+  .bar{height:6px;background:#0a0d12}
+  .bar i{display:block;height:100%;background:#4a5363;width:0}
+  .p.on .bar i{background:var(--amber)}
+  .p .v{font-family:ui-monospace,monospace;font-size:11px;text-align:right;font-variant-numeric:tabular-nums}
+  .kv{display:grid;grid-template-columns:1fr auto;gap:7px 12px;font-size:12px}
+  .kv span{color:var(--dim)} .kv b{font-family:ui-monospace,monospace;font-weight:400;text-align:right;font-variant-numeric:tabular-nums}
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media (max-width:820px){.charts{grid-template-columns:1fr}}
+  canvas{width:100%;height:190px;display:block}
+  .note{font-size:11px;color:var(--faint);line-height:1.6;margin:10px 0 0}
+  .brain{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+  @media (max-width:820px){.brain{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .brain canvas{height:auto;aspect-ratio:var(--ar,4/3);image-rendering:pixelated;background:#06070a}
+  .brain h3,.rw h3{font-size:11.5px;font-weight:500;margin:8px 0 2px;color:var(--paper)}
+  .brain p,.rw p{font-size:11px;color:var(--faint);line-height:1.55;margin:0}
+  #c-rew{height:170px}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--dim);margin-top:8px}
+  .legend i{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:-1px}
+  footer{font-size:10.5px;color:var(--faint);line-height:1.75;border-top:1px solid var(--line);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="live"><b></b>TRAINING NOW</div>
+    <h1>The Fly Learns <em>Mario</em></h1>
+    <p>Each attempt below uses the newest weights from training, reloaded every time, so you
+       are watching the policy improve. The fly's visual system — 92,743 neurons of real
+       connectome — does the seeing; a learned network turns its optic-lobe activity into buttons.</p>
+  </header>
+
+  <div class="stage">
+    <div class="screen">
+      <img id="screen" alt="Mario, played by the current training checkpoint">
+      <canvas id="heat"></canvas>
+      <div class="tag" id="tag">waiting for the first checkpoint…</div>
+      <div class="won" id="won" hidden>Level complete</div>
+    </div>
+    <aside>
+      <div class="card">
+        <h2>Buttons it is choosing between</h2>
+        <div class="probs" id="probs"></div>
+      </div>
+      <div class="card">
+        <h2>Right now</h2>
+        <div class="kv">
+          <span>Distance</span><b id="k-x">—</b>
+          <span>Attempt on this page</span><b id="k-att">—</b>
+          <span>Finished here</span><b id="k-wins">—</b>
+          <span>Weights trained on</span><b id="k-ck">—</b>
+          <span>Strongly active neurons</span><b id="k-spk">—</b>
+        </div>
+        <p class="note">The glow on the game is where the fly was looking when it picked its
+          button: how much each patch of its optic lobe moved that choice. If it is reading the
+          level, the glow sits on the pipe, gap or Goomba ahead just before it jumps.</p>
+      </div>
+    </aside>
+  </div>
+
+  <div class="card">
+    <h2>Inside the fly, this decision</h2>
+    <div class="brain">
+      <div><canvas id="b-eye" style="--ar:24/15"></canvas><h3>What the eye receives</h3>
+        <p>The game as the eye's 3,354 photoreceptors receive it: a 24×15 grid over the whole screen. Bright = edges and contrast.</p></div>
+      <div><canvas id="b-ol" style="--ar:20/16"></canvas><h3>Optic lobe activity</h3>
+        <p>92,743 connectome neurons, smooth-signal like the real early visual system, averaged by where each sits in the visual field.</p></div>
+      <div><canvas id="b-mo" style="--ar:20/16"></canvas><h3>Motion it detects</h3>
+        <p>Change since the last decision. <span style="color:#6cb6ff">Blue</span> rising, <span style="color:#ff7a59">red</span> falling.</p></div>
+      <div><canvas id="b-ras" style="--ar:4/3"></canvas><h3>Neurons, live</h3>
+        <p>600 optic-lobe neurons, ordered by visual position, scrolling left. A dot is a neuron strongly active at that moment.</p></div>
+    </div>
+  </div>
+
+  <div class="card rw">
+    <h2>Rewards and punishments, this attempt</h2>
+    <canvas id="c-rew"></canvas>
+    <div class="legend">
+      <span><i style="background:var(--live)"></i>reward: moved right</span>
+      <span><i style="background:#e5534b"></i>punishment: clock ticking, going back, dying</span>
+      <span><i style="background:#c9a7ff;height:2px;vertical-align:3px"></i>what it expects to earn from here (its own estimate)</span>
+      <span id="rw-total"></span>
+    </div>
+    <p style="margin-top:8px">This is exactly the signal training learns from: choices followed by green get more likely,
+      choices followed by red less. A death costs −1.5 at once; reaching the flag pays +5.</p>
+  </div>
+
+  <div class="card">
+    <h2>Training so far</h2>
+    <div class="charts">
+      <div><canvas id="c-rate"></canvas><p class="note">Share of the last 40 training attempts that reached the flag.</p></div>
+      <div><canvas id="c-x"></canvas><p class="note">Average distance over the last 40 attempts. The level ends at about 3,161.</p></div>
+    </div>
+  </div>
+
+  <footer>Connectome: MaleCNS v1.0, Google Research &amp; HHMI Janelia, CC-BY. This page plays the
+    policy's top choice every step, no dice rolls, so a finish here means it knew what to do.
+    Training itself still samples, so its finish rate can differ from this page's.</footer>
+</div>
+<script>
+(function(){
+  "use strict";
+  var ACTS=["none","right","run-jump","run","run-jump-b","jump","left"];
+  var probs=document.getElementById("probs");
+  ACTS.forEach(function(a,i){
+    var r=document.createElement("div"); r.className="p"; r.id="p-"+i;
+    r.innerHTML='<span>'+a+'</span><span class="bar"><i></i></span><span class="v">0%</span>';
+    probs.appendChild(r);
+  });
+  function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+  function chart(id, xs, ys, ymax, color, fmt, refLine){
+    var c=document.getElementById(id), dpr=window.devicePixelRatio||1;
+    var w=c.clientWidth, h=c.clientHeight; c.width=w*dpr; c.height=h*dpr;
+    var g=c.getContext("2d"); g.scale(dpr,dpr); g.clearRect(0,0,w,h);
+    var L=40,R=8,T=8,B=22, W=w-L-R, H=h-T-B;
+    g.strokeStyle=css("--line"); g.fillStyle=css("--faint"); g.font="10px ui-monospace,monospace";
+    for(var k=0;k<=4;k++){ var y=T+H*(1-k/4); g.beginPath(); g.moveTo(L,y); g.lineTo(L+W,y); g.stroke();
+      g.textAlign="right"; g.fillText(fmt(ymax*k/4), L-6, y+3); }
+    if(!xs.length) return;
+    var x0=0, x1=Math.max(xs[xs.length-1],0.1);
+    g.textAlign="center"; g.fillText("0", L, h-6); g.fillText(x1.toFixed(1)+"M frames", L+W-30, h-6);
+    if(refLine){ var ry=T+H*(1-refLine/ymax); g.strokeStyle=css("--amber"); g.setLineDash([4,4]);
+      g.beginPath(); g.moveTo(L,ry); g.lineTo(L+W,ry); g.stroke(); g.setLineDash([]); }
+    g.strokeStyle=color; g.lineWidth=1.8; g.beginPath();
+    xs.forEach(function(xv,i){ var px=L+W*(xv-x0)/(x1-x0), py=T+H*(1-Math.min(ys[i],ymax)/ymax);
+      i?g.lineTo(px,py):g.moveTo(px,py); }); g.stroke();
+    var lx=L+W*(xs[xs.length-1]-x0)/(x1-x0), ly=T+H*(1-Math.min(ys[ys.length-1],ymax)/ymax);
+    g.fillStyle=color; g.beginPath(); g.arc(lx,ly,3,0,6.283); g.fill();
+  }
+  var img=document.getElementById("screen"), busy=false;
+  function sizeC(c){ var dpr=window.devicePixelRatio||1, w=c.clientWidth, h=c.clientHeight;
+    if(c.width!==Math.round(w*dpr)){c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);}
+    var g=c.getContext("2d"); g.setTransform(dpr,0,0,dpr,0,0); return [g,w,h]; }
+  function grid(id, vals, cols, rows, colorFn){
+    var c=document.getElementById(id), r=sizeC(c), g=r[0], w=r[1], h=r[2];
+    g.clearRect(0,0,w,h); if(!vals) return;
+    var cw=w/cols, ch=h/rows;
+    for(var i=0;i<vals.length;i++){ g.fillStyle=colorFn(vals[i]);
+      g.fillRect((i%cols)*cw, Math.floor(i/cols)*ch, cw+.5, ch+.5); }
+  }
+  function scale(a){ var lo=Infinity,hi=-Infinity; a.forEach(function(v){if(v<lo)lo=v;if(v>hi)hi=v;});
+    return function(v){ return hi>lo?(v-lo)/(hi-lo):0; }; }
+  function heatColor(t){ t=Math.max(0,Math.min(1,t));
+    var r=Math.round(20+235*Math.min(1,t*1.6)), gg=Math.round(18+200*Math.max(0,t-.35)/.65), b=Math.round(30+60*(1-t));
+    return "rgb("+r+","+gg+","+b+")"; }
+  var raster=null, rasterCols=140;
+  function drawRaster(ids, n){
+    var c=document.getElementById("b-ras"), r=sizeC(c), g=r[0], w=r[1], h=r[2];
+    if(!raster||raster.n!==n) raster={n:n, cols:[]};
+    raster.cols.push(ids||[]); if(raster.cols.length>rasterCols) raster.cols.shift();
+    g.fillStyle="#06070a"; g.fillRect(0,0,w,h);
+    var cw=w/rasterCols, rh=h/n; g.fillStyle="#7fd98a";
+    raster.cols.forEach(function(col,j){ var x=w-(raster.cols.length-j)*cw;
+      for(var k=0;k<col.length;k++) g.fillRect(x, col[k]*rh, Math.max(cw-.6,1), Math.max(rh,1.2)); });
+  }
+  function drawRewards(tr, total){
+    var c=document.getElementById("c-rew"), r=sizeC(c), g=r[0], w=r[1], h=r[2];
+    g.clearRect(0,0,w,h); var L=36,R=8,T=10,B=16, W=w-L-R, H=h-T-B, N=160;
+    var hi=6; (tr||[]).forEach(function(e){ hi=Math.max(hi,e[0],e[1]); }); hi=Math.ceil(hi/2)*2;
+    var lo=-2, y0=T+H*hi/(hi-lo);
+    function Y(v){ return T+H*(hi-Math.max(lo,Math.min(hi,v)))/(hi-lo); }
+    g.strokeStyle=css("--line"); g.fillStyle=css("--faint"); g.font="10px ui-monospace,monospace"; g.textAlign="right";
+    [-2,0,hi/2,hi].forEach(function(v){ g.beginPath(); g.moveTo(L,Y(v)); g.lineTo(L+W,Y(v)); g.stroke(); g.fillText(v,L-6,Y(v)+3); });
+    if(!tr||!tr.length) return;
+    var bw=W/N, x0=L+W-tr.length*bw;
+    tr.forEach(function(e,i){ var v=e[0], x=x0+i*bw;
+      g.fillStyle = v>=0 ? css("--live") : "#e5534b";
+      var y=Y(v); g.fillRect(x, Math.min(y,y0), Math.max(bw-1,1), Math.max(Math.abs(y-y0),1));
+      if(e[2]){ g.fillStyle=e[2]==="flag"?"#ffd34d":"#ff5a4f"; g.textAlign="center";
+        g.fillText(e[2]==="flag"?"FLAG":"DIED", x+bw/2, T+8); } });
+    g.strokeStyle="#c9a7ff"; g.lineWidth=1.6; g.beginPath();
+    tr.forEach(function(e,i){ var x=x0+(i+.5)*bw, y=Y(e[1]); i?g.lineTo(x,y):g.moveTo(x,y); }); g.stroke();
+    document.getElementById("rw-total").textContent="total this attempt: "+(total>=0?"+":"")+total.toFixed(1);
+  }
+  // Optic-lobe grid -> screen. Columns follow the ommatidial hex1 axis and rows hex2,
+  // the same axes the retina is wired on; the retina covers frame rows 48-224.
+  function heat(att, grid){
+    var c=document.getElementById("heat"), dpr=window.devicePixelRatio||1;
+    var w=c.clientWidth, h=c.clientHeight; if(c.width!==w*dpr){c.width=w*dpr;c.height=h*dpr;}
+    var g=c.getContext("2d"); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,w,h);
+    if(!att||!att.length) return;
+    var GX=grid[0], GY=grid[1], top=h*48/240, bh=h*176/240, cw=w/GX, ch=bh/GY;
+    for(var i=0;i<att.length;i++){ var v=att[i]; if(v<0.15) continue;
+      var cx=(i%GX+.5)*cw, cy=top+(Math.floor(i/GX)+.5)*ch, r=Math.max(cw,ch)*1.4;
+      var gr=g.createRadialGradient(cx,cy,0,cx,cy,r);
+      gr.addColorStop(0,"rgba(255,140,40,"+(v*.75).toFixed(3)+")"); gr.addColorStop(1,"rgba(255,80,20,0)");
+      g.fillStyle=gr; g.fillRect(cx-r,cy-r,2*r,2*r); }
+  }
+  function pump(){ if(busy){requestAnimationFrame(pump);return;} busy=true;
+    var a=new Image(); a.onload=function(){img.src=a.src;busy=false;setTimeout(pump,50);};
+    a.onerror=function(){busy=false;setTimeout(pump,500);}; a.src="/frame.jpg?t="+Date.now(); }
+  function poll(){
+    fetch("/state",{cache:"no-store"}).then(function(r){return r.json();}).then(function(s){
+      if(s.error){document.getElementById("tag").textContent="error: "+s.error;return;}
+      if(s.ready && s.attempt){
+        document.getElementById("tag").textContent="attempt "+s.attempt+" · x "+s.x;
+        (s.probs||[]).forEach(function(p,i){ var r=document.getElementById("p-"+i);
+          r.className="p"+(ACTS[i]===s.action?" on":"");
+          r.querySelector("i").style.width=(p*100)+"%"; r.querySelector(".v").textContent=(p*100).toFixed(0)+"%"; });
+        document.getElementById("k-x").textContent=s.x;
+        document.getElementById("k-att").textContent=s.attempt;
+        document.getElementById("k-wins").textContent=(s.wins||0)+" of "+(s.attempts||0);
+        document.getElementById("k-ck").textContent=(s.ckpt_frames||0).toFixed(2)+"M frames";
+        document.getElementById("k-spk").textContent=(s.spikes||0).toLocaleString();
+        heat(s.attention, s.grid||[20,16]);
+        if(s.eye){ var es=s.eye_shape||[15,24], se=scale(s.eye);
+          grid("b-eye", s.eye, es[1], es[0], function(v){ var t=Math.round(255*se(v)); return "rgb("+t+","+t+","+t+")"; }); }
+        if(s.ol){ var so=scale(s.ol); grid("b-ol", s.ol, 20, 16, function(v){ return heatColor(so(v)); }); }
+        if(s.motion){ var m=0; s.motion.forEach(function(v){ m=Math.max(m,Math.abs(v)); }); m=m||1;
+          grid("b-mo", s.motion, 20, 16, function(v){ var t=Math.min(1,Math.abs(v)/m);
+            return v>=0 ? "rgba(108,182,255,"+t+")" : "rgba(255,122,89,"+t+")"; }); }
+        if(s.raster) drawRaster(s.raster, s.raster_n||600);
+        drawRewards(s.reward_trace, s["return"]||0);
+        document.getElementById("won").hidden=!(s.last_flag && s.max_x>=3000 && s.x<200);
+      }
+      var t=s.training||[];
+      var xs=t.map(function(r){return r.frames;});
+      chart("c-rate", xs, t.map(function(r){return r.flags/Math.max(r.of,1)*100;}), 100, css("--live"),
+            function(v){return v.toFixed(0)+"%";}, 50);
+      chart("c-x", xs, t.map(function(r){return r.mean_x;}), 3200, css("--amber"),
+            function(v){return Math.round(v);}, 3161);
+      setTimeout(poll,150);
+    }).catch(function(){setTimeout(poll,1500);});
+  }
+  pump(); poll();
+})();
+</script>
+</body>
+</html>

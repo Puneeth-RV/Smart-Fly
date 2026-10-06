@@ -32,16 +32,91 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from brain.lif import ConnectomeBrain, LIFConfig, homeostatic_bias, load_connectome  # noqa: E402
+from brain.lif import (ConnectomeBrain, GradedBrain, LIFConfig, homeostatic_bias,  # noqa: E402
+                       load_connectome)
 from nes.mario import ACTIONS, Mario  # noqa: E402
 
 OUT = ROOT / "out"
 
 
+class HexToScreen:
+    """Map ommatidial hex coordinates onto a flat screen.
+
+    hex1 and hex2 are axes of a hexagonal lattice, 60 degrees apart, so treated
+    as x and y they put the eye on a slanted band: 40% of a 15x24 retina got no
+    photoreceptor at all, including most of the area ahead of and above Mario.
+    The fix is to decorrelate the two axes (principal components of the column
+    positions -- the long axis of the eye runs across) and then spread each
+    axis by its distribution so the eye's field covers the screen. Built once on
+    the optic-lobe columns and applied to everything placed on the screen, so the
+    retina and the optic-lobe maps stay in register.
+    """
+
+    def __init__(self, h1, h2):
+        P = np.stack([h1, h2], 1).astype(np.float64)
+        self.mu = P.mean(0)
+        _, _, vt = np.linalg.svd(P - self.mu, full_matrices=False)
+        self.R = vt                           # rows: long axis, then short axis
+        Q = (P - self.mu) @ self.R.T
+        self.ref = [np.sort(Q[:, k]) for k in (0, 1)]
+
+    def __call__(self, h1, h2):
+        P = np.stack([np.nan_to_num(h1), np.nan_to_num(h2)], 1).astype(np.float64)
+        Q = (P - self.mu) @ self.R.T
+        u, v = (np.interp(Q[:, k], self.ref[k], np.linspace(0, 1, self.ref[k].size))
+                for k in (0, 1))
+        return u.astype(np.float32), v.astype(np.float32)
+
+
+def _photo_pixels(raw, photo, meta, rows, cols, hexmap=None):
+    """Place each photoreceptor on a rows x cols retina from the connectome.
+
+    Photoreceptors carry no coordinates of their own; each one is put where the
+    columnar optic-lobe cells it synapses onto sit (their ommatidial hex
+    coordinates), weighted by synapse count. Same method the 15x24 eye used,
+    for any retina shape: hex1 runs across, hex2 down.
+    """
+    h1 = np.asarray(meta["hex1"], np.float32); h2 = np.asarray(meta["hex2"], np.float32)
+    have = np.isfinite(h1) & np.isfinite(h2)
+    Wp = raw[photo].tocsr()
+    pos = np.full((photo.size, 2), np.nan, np.float32)
+    for i in range(photo.size):
+        lo, hi = Wp.indptr[i], Wp.indptr[i + 1]
+        tgt, wt = Wp.indices[lo:hi], np.abs(Wp.data[lo:hi])
+        m = have[tgt]
+        if m.any():
+            pos[i] = np.average(h1[tgt[m]], weights=wt[m]), np.average(h2[tgt[m]], weights=wt[m])
+    good = np.isfinite(pos[:, 0])
+    if hexmap is not None:
+        # Equal-count tiling: order the placed photoreceptors across the eye's
+        # long axis into `cols` strips, then each strip top to bottom into
+        # `rows` cells. Neighbours stay neighbours and every pixel is seen;
+        # positions inferred from synapse targets cluster, and mapping them
+        # directly left holes in the middle of the screen.
+        u, v = hexmap(pos[:, 0], pos[:, 1])
+        gi = np.flatnonzero(good)
+        pix = np.zeros(photo.size, np.int64)
+        for c, strip in enumerate(np.array_split(gi[np.argsort(u[gi], kind="stable")], cols)):
+            for r, cell in enumerate(np.array_split(strip[np.argsort(v[strip], kind="stable")], rows)):
+                pix[cell] = r * cols + c
+        pix[~good] = np.arange(int((~good).sum())) % (rows * cols)
+        return pix
+    else:
+        for k in (0, 1):
+            lo, hi = np.percentile(pos[good, k], 1), np.percentile(pos[good, k], 99)
+            pos[:, k] = np.clip((pos[:, k] - lo) / max(hi - lo, 1e-6), 0, 1)
+    c = np.clip(np.nan_to_num(pos[:, 0]) * (cols - 1), 0, cols - 1).round()
+    r = np.clip(np.nan_to_num(pos[:, 1]) * (rows - 1), 0, rows - 1).round()
+    pix = (r * cols + c).astype(np.int64)
+    pix[~good] = np.arange(int((~good).sum())) % (rows * cols)
+    return pix
+
+
 class MarioFly:
     """Connectome + retina + linear readout over early visual activity."""
 
-    def __init__(self, brain_steps: int = 4, frame_skip: int = 4, seed: int = 0):
+    def __init__(self, brain_steps: int = 4, frame_skip: int = 4, seed: int = 0,
+                 graded: bool = False, retina: tuple[int, int] | None = None):
         W, raw, pops, meta = load_connectome(with_raw=True)
         photo = np.asarray(pops["photoreceptor_R16"], dtype=np.int64)
         ol = np.asarray(pops["optic_lobe"], dtype=np.int64)
@@ -70,6 +145,21 @@ class MarioFly:
         full = FlyAgent(W, raw, pops, AgentConfig(seed=seed),
                         LIFConfig(gain=1.19, seed=seed), meta=meta)
         self.photo_pixel = full.photo_pixel[: self.photo.size]
+        self.hexmap = None
+        if retina is not None:
+            h1, h2 = np.asarray(meta["hex1"]), np.asarray(meta["hex2"])
+            colm = np.isfinite(h1) & np.isfinite(h2)
+            colm[np.setdiff1d(np.arange(colm.size), ol)] = False
+            self.hexmap = HexToScreen(h1[colm], h2[colm])
+            self.photo_pixel = _photo_pixels(raw, photo, meta, *retina,
+                                             hexmap=self.hexmap)[: self.photo.size]
+        self.graded = graded
+        if graded:
+            # Smooth-signal neurons on the same wiring (see GradedBrain). Every
+            # cell rests partway up its range so that inhibitory input -- which
+            # is what photoreceptors send -- can move it.
+            self.brain = GradedBrain(self.brain.W, gain=0.5)
+            self.brain.bias[:] = 0.5
         self.cfg = full.cfg
         self.prev_px = None
         self.ext = np.zeros(self.n, dtype=np.float32)
@@ -96,13 +186,23 @@ class MarioFly:
             def norm(v):
                 lo, hi = np.percentile(v[ok], 2), np.percentile(v[ok], 98)
                 return np.clip((v - lo) / max(hi - lo, 1e-6), 0, 1)
-            u, w = norm(hh1), norm(hh2)
+            u, w = self.hexmap(hh1, hh2) if self.hexmap is not None else (norm(hh1), norm(hh2))
             gx = np.clip((np.nan_to_num(u, nan=.5) * (GX - 1)).round(), 0, GX - 1).astype(int)
             gy = np.clip((np.nan_to_num(w, nan=.5) * (GY - 1)).round(), 0, GY - 1).astype(int)
             loc = pos[ol_global]
+            cell_of = -np.ones(self.n, dtype=np.int64)
             for k in range(len(ol_global)):
                 if loc[k] >= 0:
                     cells[gy[k] * GX + gx[k]].append(loc[k])
+                    cell_of[loc[k]] = gy[k] * GX + gx[k]
+            # The first layer behind the photoreceptors, on its own map. Probing
+            # showed it keeps most of what the eye sees while deeper layers,
+            # without fitted synaptic strengths, mix it away; averaging the two
+            # together would dilute the layer that still has the picture.
+            f1 = self.ol1[cell_of[self.ol1] >= 0]
+            self.first_idx, self.first_cell = f1, cell_of[f1]
+            self.first_count = np.maximum(np.bincount(self.first_cell, minlength=GX * GY),
+                                          1).astype(np.float32)
         # Flatten the grid into one index array plus a cell id per entry, so
         # pooling is a single bincount rather than 320 separate mean() calls --
         # at this resolution that difference is 17.5s per episode against 1.5s.
@@ -125,6 +225,15 @@ class MarioFly:
         self.photo_bins = np.array_split(self.photo, 24)
         self.n_grid = GX * GY
         self.n_feat = self.n_grid * 2 + len(self.photo_bins)   # map + motion + photo
+        if graded:
+            # + first-layer map, + the photoreceptors laid out as the eye's own
+            # pixel map (the 24 index-order bins above throw away where the
+            # signal came from; probing showed the photoreceptors themselves
+            # still carry Goombas that every pooled readout lost)
+            self.n_pix = int(self.photo_pixel.max()) + 1
+            self.pix_count = np.maximum(np.bincount(self.photo_pixel, minlength=self.n_pix),
+                                        1).astype(np.float32)
+            self.n_feat += self.n_grid + self.n_pix
         self.prev_grid = np.zeros(self.n_grid, dtype=np.float32)
         used = sum(1 for c in self.grid if c.size)
         print(f"  retinotopic pooling: {GX}x{GY} grid, {used}/{self.n_grid} cells populated, "
@@ -157,6 +266,13 @@ class MarioFly:
         return info
 
     def _drive(self, retina: np.ndarray) -> np.ndarray:
+        if self.graded:
+            px = retina.ravel()[self.photo_pixel]
+            prev = self.prev_px if self.prev_px is not None else px
+            self.prev_px = px.copy()
+            e = np.zeros(self.n, dtype=np.float32)
+            e[self.photo] = 0.2 + 0.8 * px + 1.5 * (px - prev)
+            return e
         flat = retina.ravel()
         px = flat[self.photo_pixel]
         c = self.cfg
@@ -176,6 +292,12 @@ class MarioFly:
         self.prev_grid = g
         p = (np.bincount(self.photo_cell, weights=tr[self.photo_idx],
                          minlength=24) / self.photo_count).astype(np.float32)
+        if self.graded:
+            g1 = (np.bincount(self.first_cell, weights=tr[self.first_idx],
+                              minlength=self.n_grid) / self.first_count).astype(np.float32)
+            eye = (np.bincount(self.photo_pixel, weights=tr[self.photo],
+                               minlength=self.n_pix) / self.pix_count).astype(np.float32)
+            return np.concatenate([g, d, p, g1, eye])
         return np.concatenate([g, d, p])
 
     def act(self, retina: np.ndarray, Wr: np.ndarray) -> int:

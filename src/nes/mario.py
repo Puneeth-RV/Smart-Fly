@@ -41,7 +41,13 @@ class Mario:
 
     RANDOM_STAGES = "SuperMarioBrosRandomStages-v0"
 
-    def __init__(self, world: str = "SuperMarioBros-1-1-v0", seed: int = 0):
+    def __init__(self, world: str = "SuperMarioBros-1-1-v0", seed: int = 0,
+                 retina: tuple[int, int] = (RETINA_H, RETINA_W)):
+        # (rows, cols). The default 24x15 is the upright phone shape inherited
+        # from the runner; Mario's screen is wide, and (15, 24) gives the
+        # direction that matters -- what is coming from the right -- 60% more
+        # resolution for the same 360 cells.
+        self.rh, self.rw = retina
         self.env = JoypadSpace(
             gym_super_mario_bros.make(world, apply_api_compatibility=True,
                                       render_mode="rgb_array"),
@@ -101,9 +107,8 @@ class Mario:
         g /= 255.0
         g = g[48:224, :]                       # drop the score HUD, keep the ground
         h, w = g.shape
-        bh, bw = h // RETINA_H, w // RETINA_W
-        blocks = g[: bh * RETINA_H, : bw * RETINA_W].reshape(
-            RETINA_H, bh, RETINA_W, bw)
+        bh, bw = h // self.rh, w // self.rw
+        blocks = g[: bh * self.rh, : bw * self.rw].reshape(self.rh, bh, self.rw, bw)
         out = blocks.std(axis=(1, 3))
         m = out.max()
         return (out / m) if m > 1e-6 else out
