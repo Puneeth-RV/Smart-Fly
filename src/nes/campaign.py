@@ -31,7 +31,9 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 OUT = ROOT / "out"
-STATE = OUT / "campaign.json"
+# Not campaign.json: the trainer writes out/<tag>.json (its episode log), and
+# with tag "campaign" it overwrote this file every update.
+STATE = OUT / "campaign_state.json"
 TAG = "campaign"
 
 ORDER = [f"{w}-{s}" for w in range(1, 9) for s in range(1, 5)]
