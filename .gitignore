@@ -44,3 +44,6 @@ out/probe_*.txt
 out/probe_vision_*.json
 !out/probe_vision_v2.json
 out/watch*.log
+
+# Campaign state, checkpoint and logs (live, regenerated as it trains)
+out/campaign*
