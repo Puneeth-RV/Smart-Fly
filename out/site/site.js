@@ -176,3 +176,95 @@
 
   pump(); poll(); pollCampaign();
 })();
+
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var site = window.FlySite, C = site.colours, fit = site.fit, rgb = site.rgb;
+
+  // Draw a grid of values as a small image scaled up crisply. Each map keeps a
+  // slowly moving range so its brightness does not flicker frame to frame.
+  var ranges = {};
+  var buf = document.createElement("canvas");
+  function gridMap(id, vals, cols, rows, tint) {
+    var c = $(id); if (!c || !vals) return;
+    var r = fit(c), g = r[0], w = r[1], h = r[2];
+    var lo = Infinity, hi = -Infinity;
+    for (var i = 0; i < vals.length; i++) { if (vals[i] < lo) lo = vals[i]; if (vals[i] > hi) hi = vals[i]; }
+    var rg = ranges[id] || (ranges[id] = { lo: lo, hi: hi });
+    rg.lo += (lo - rg.lo) * 0.2; rg.hi += (hi - rg.hi) * 0.2;
+    var span = Math.max(rg.hi - rg.lo, 1e-6);
+    var a = rgb(C["viz-bg"]), b = rgb(tint || C["viz-hi"]);
+    buf.width = cols; buf.height = rows;
+    var bg = buf.getContext("2d"), img = bg.createImageData(cols, rows);
+    for (var k = 0; k < cols * rows; k++) {
+      var t = Math.max(0, Math.min(1, ((vals[k] || 0) - rg.lo) / span));
+      t = Math.pow(t, 0.8);
+      for (var ch = 0; ch < 3; ch++) img.data[k * 4 + ch] = Math.round(a[ch] + (b[ch] - a[ch]) * t);
+      img.data[k * 4 + 3] = 255;
+    }
+    bg.putImageData(img, 0, 0);
+    g.imageSmoothingEnabled = false;
+    g.drawImage(buf, 0, 0, w, h);
+  }
+
+  // Scrolling record of which sampled neurons were strongly active.
+  var cols = [], COLS = 160;
+  function raster(ids, n) {
+    var c = $("v-raster"), r = fit(c), g = r[0], w = r[1], h = r[2];
+    cols.push(ids || []); if (cols.length > COLS) cols.shift();
+    g.fillStyle = C["viz-bg"]; g.fillRect(0, 0, w, h);
+    var cw = w / COLS, rh = h / Math.max(n, 1);
+    g.fillStyle = C.ink;
+    for (var j = 0; j < cols.length; j++) {
+      var x = w - (cols.length - j) * cw, col = cols[j];
+      g.globalAlpha = 0.35 + 0.65 * (j / cols.length);
+      for (var k = 0; k < col.length; k++) g.fillRect(x, col[k] * rh, Math.max(cw - 0.5, 1), Math.max(rh, 1));
+    }
+    g.globalAlpha = 1;
+  }
+
+  // Reward per decision as bars around zero, with the fly's own expectation as a line.
+  function rewards(trace, total) {
+    var c = $("v-reward"), r = fit(c), g = r[0], w = r[1], h = r[2];
+    g.clearRect(0, 0, w, h);
+    var L = 34, R = 6, T = 14, B = 8, W = w - L - R, H = h - T - B, N = 160;
+    var hi = 4; (trace || []).forEach(function (e) { hi = Math.max(hi, e[0], e[1]); });
+    hi = Math.ceil(hi / 2) * 2; var lo = -2;
+    function Y(v) { return T + H * (hi - Math.max(lo, Math.min(hi, v))) / (hi - lo); }
+    g.font = "11px " + getComputedStyle(document.body).getPropertyValue("--mono");
+    g.textAlign = "right"; g.fillStyle = C["ink-3"]; g.strokeStyle = C.rule; g.lineWidth = 1;
+    [lo, 0, hi / 2, hi].forEach(function (v) {
+      g.beginPath(); g.moveTo(L, Math.round(Y(v)) + .5); g.lineTo(L + W, Math.round(Y(v)) + .5); g.stroke();
+      g.fillText(v > 0 ? "+" + v : String(v), L - 7, Y(v) + 4);
+    });
+    if (!trace || !trace.length) return;
+    var bw = W / N, x0 = L + W - trace.length * bw, y0 = Y(0);
+    trace.forEach(function (e, i) {
+      var y = Y(e[0]), x = x0 + i * bw;
+      g.fillStyle = e[0] >= 0 ? C.accent : C.warn;
+      g.fillRect(x, Math.min(y, y0), Math.max(bw - 1, 1), Math.max(Math.abs(y - y0), 1));
+      if (e[2]) {
+        g.fillStyle = e[2] === "flag" ? C.accent : C.warn; g.textAlign = "center";
+        g.fillText(e[2] === "flag" ? "flag" : "died", x + bw / 2, 10);
+      }
+    });
+    g.strokeStyle = C.heat; g.lineWidth = 1.6; g.beginPath();
+    trace.forEach(function (e, i) { var x = x0 + (i + .5) * bw, y = Y(e[1]); if (i) g.lineTo(x, y); else g.moveTo(x, y); });
+    g.stroke();
+    $("ret").textContent = "This attempt: " + (total >= 0 ? "+" : "") + total.toFixed(1);
+  }
+
+  var lastAttempt = null;
+  site.onState(function (s) {
+    if (s.attempt !== lastAttempt) { cols = []; lastAttempt = s.attempt; }
+    var es = s.eye_shape || [15, 24];
+    gridMap("v-eye", s.eye, es[1], es[0]);
+    gridMap("v-first", s.first || s.deep, 20, 16);
+    gridMap("v-deep", s.deep, 20, 16);
+    gridMap("v-attn", s.attention, 20, 16, C.heat);
+    raster(s.raster, s.raster_n || 480);
+    rewards(s.reward_trace, s["return"] || 0);
+  });
+  window.addEventListener("viewchange", function () { cols = []; ranges = {}; });
+})();
