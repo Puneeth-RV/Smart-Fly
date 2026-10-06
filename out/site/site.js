@@ -37,7 +37,10 @@
   document.querySelectorAll(".tabs [role=tab]").forEach(function (b) {
     b.addEventListener("click", function () { setView(b.dataset.view); });
   });
-  try { var sv = localStorage.getItem("view"); if (sv === "theater") setView("theater"); } catch (e) {}
+  try {
+    var qv = (location.search.match(/[?&]view=(live|theater)/) || [])[1];
+    var sv = qv || localStorage.getItem("view"); if (sv === "theater") setView("theater");
+  } catch (e) {}
 
   window.FlySite = { view: function () { return view; }, setView: setView };
 })();
@@ -189,8 +192,10 @@
   function gridMap(id, vals, cols, rows, tint) {
     var c = $(id); if (!c || !vals) return;
     var r = fit(c), g = r[0], w = r[1], h = r[2];
-    var lo = Infinity, hi = -Infinity;
-    for (var i = 0; i < vals.length; i++) { if (vals[i] < lo) lo = vals[i]; if (vals[i] > hi) hi = vals[i]; }
+    // Robust range (5th to 98th percentile): a handful of saturated neurons
+    // would otherwise stretch the scale and leave the rest black.
+    var sorted = Array.prototype.slice.call(vals).sort(function (x, y) { return x - y; });
+    var lo = sorted[Math.floor(sorted.length * 0.05)], hi = sorted[Math.floor(sorted.length * 0.98)];
     var rg = ranges[id] || (ranges[id] = { lo: lo, hi: hi });
     rg.lo += (lo - rg.lo) * 0.2; rg.hi += (hi - rg.hi) * 0.2;
     var span = Math.max(rg.hi - rg.lo, 1e-6);
@@ -260,11 +265,126 @@
     if (s.attempt !== lastAttempt) { cols = []; lastAttempt = s.attempt; }
     var es = s.eye_shape || [15, 24];
     gridMap("v-eye", s.eye, es[1], es[0]);
-    gridMap("v-first", s.first || s.deep, 20, 16);
+    gridMap("v-photo", s.photo || s.eye, es[1], es[0]);
     gridMap("v-deep", s.deep, 20, 16);
     gridMap("v-attn", s.attention, 20, 16, C.heat);
     raster(s.raster, s.raster_n || 480);
     rewards(s.reward_trace, s["return"] || 0);
   });
   window.addEventListener("viewchange", function () { cols = []; ranges = {}; });
+})();
+
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var site = window.FlySite, C = site.colours, fit = site.fit;
+  var camp = null, playing = null;
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function clock(t) { return new Date(t * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
+
+  // --------------------------------------------------------- world map
+  function worlds(c) {
+    var html = "";
+    for (var w = 1; w <= 8; w++) {
+      html += '<div class="world"><h4>World ' + w + '</h4><ol>';
+      for (var l = 1; l <= 4; l++) {
+        var lv = w + "-" + l, k = "";
+        if ((c.mastered || []).indexOf(lv) >= 0) k = "mastered";
+        else if ((c.parked || []).indexOf(lv) >= 0) k = "parked";
+        if (lv === c.current) k = "current";
+        var title = k === "mastered" ? "Mastered" : k === "current" ? "Learning now" : k === "parked" ? "Set aside for now" : "Not reached yet";
+        html += '<li class="' + k + '" title="' + lv + ": " + title + '">' + lv + "</li>";
+      }
+      html += "</ol></div>";
+    }
+    $("worlds").innerHTML = html;
+  }
+
+  function tests(c) {
+    var t = (c.tests || []).slice().reverse();
+    $("tests").innerHTML = t.length ? t.map(function (x) {
+      var pass = x.flags >= 8;
+      return '<li><time>' + clock(x.t) + '</time><span class="lv">' + esc(x.level) + '</span><span>' +
+        x.flags + " of " + x.of + " runs reached the flag · average distance " + Number(x.mean_x).toLocaleString() +
+        '</span><span class="' + (pass ? "ok" : "no") + '">' + (pass ? "Mastered" : "Not yet") + "</span></li>";
+    }).join("") : '<li><span></span><span></span><span class="no">No tests yet.</span><span></span></li>';
+  }
+
+  // ------------------------------------------------------------ charts
+  function chart(id, rows, key, max, fmt, ref) {
+    var c = $(id), r = fit(c), g = r[0], w = r[1], h = r[2];
+    g.clearRect(0, 0, w, h);
+    var L = 44, R = 8, T = 8, B = 22, W = w - L - R, H = h - T - B;
+    g.font = "11px IBM Plex Mono, ui-monospace, monospace"; g.textAlign = "right";
+    g.strokeStyle = C.rule; g.fillStyle = C["ink-3"]; g.lineWidth = 1;
+    for (var k = 0; k <= 4; k++) {
+      var y = Math.round(T + H * (1 - k / 4)) + .5;
+      g.beginPath(); g.moveTo(L, y); g.lineTo(L + W, y); g.stroke(); g.fillText(fmt(max * k / 4), L - 8, y + 4);
+    }
+    if (!rows.length) return;
+    var x0 = rows[0].frames, x1 = Math.max(rows[rows.length - 1].frames, x0 + 0.1);
+    g.textAlign = "left"; g.fillText(x0.toFixed(1) + "M", L, h - 5);
+    g.textAlign = "right"; g.fillText(x1.toFixed(1) + "M frames", L + W, h - 5);
+    if (ref) {
+      var ry = T + H * (1 - ref / max); g.strokeStyle = C["rule-strong"]; g.setLineDash([3, 4]);
+      g.beginPath(); g.moveTo(L, ry); g.lineTo(L + W, ry); g.stroke(); g.setLineDash([]);
+    }
+    g.strokeStyle = C.accent; g.lineWidth = 1.8; g.beginPath();
+    rows.forEach(function (row, i) {
+      var px = L + W * (row.frames - x0) / (x1 - x0), py = T + H * (1 - Math.min(key(row), max) / max);
+      if (i) g.lineTo(px, py); else g.moveTo(px, py);
+    });
+    g.stroke();
+  }
+
+  // ----------------------------------------------------------- theater
+  function picker(c) {
+    var m = c.mastered || [], all = c.order || [];
+    $("picker").innerHTML = all.map(function (lv) {
+      var ok = m.indexOf(lv) >= 0;
+      return '<button data-level="' + lv + '"' + (ok ? "" : " disabled") + (lv === playing ? ' class="playing"' : "") +
+        ' title="' + (ok ? "Watch the fly play " + lv : lv + " is not mastered yet") + '">' + lv + "</button>";
+    }).join("");
+  }
+  $("picker").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-level]"); if (!b || b.disabled) return;
+    var lv = b.dataset.level;
+    $("queue-note").textContent = "Asking for " + lv + "…";
+    fetch("/api/theater", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ level: lv }) })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (!res.ok) { $("queue-note").textContent = res.reason || "That didn’t work."; return; }
+        $("queue-note").textContent = res.position === 0 ? lv + " is playing now." :
+          lv + " is in the queue, position " + res.position + ".";
+        if (site.view() !== "theater") site.setView("theater");
+      })
+      .catch(function () { $("queue-note").textContent = "Couldn’t reach the fly. Try again in a moment."; });
+  });
+
+  site.onState(function (s) {
+    if (site.view() !== "theater") return;
+    if (s.level !== playing) { playing = s.level; if (camp) picker(camp); }
+    var q = s.queue || [];
+    if (q.length && !/position|playing now|Asking/.test($("queue-note").textContent)) {
+      $("queue-note").textContent = "Up next: " + q.join(", ");
+    }
+    $("runs").innerHTML = (s.history || []).slice(0, 12).map(function (r) {
+      return '<li><time>' + clock(r.t) + '</time><span class="lv">' + esc(r.level) + '</span><span>distance ' +
+        Number(r.x).toLocaleString() + '</span><span class="' + (r.flag ? "ok" : "no") + '">' +
+        (r.flag ? "Reached the flag" : "Didn’t finish") + "</span></li>";
+    }).join("") || '<li><span></span><span></span><span class="no">Runs will appear here.</span><span></span></li>';
+  });
+
+  function redraw() {
+    if (!camp) return;
+    var rows = camp.training || [];
+    chart("c-rate", rows, function (r) { return 100 * r.flags / Math.max(r.of, 1); }, 100,
+          function (v) { return Math.round(v) + "%"; }, 80);
+    var mx = 1000; rows.forEach(function (r) { mx = Math.max(mx, r.mean_x); });
+    mx = Math.ceil(mx / 500) * 500;
+    chart("c-dist", rows, function (r) { return r.mean_x; }, mx, function (v) { return Math.round(v).toLocaleString(); });
+  }
+  site.onCampaign(function (c) { camp = c; worlds(c); tests(c); picker(c); redraw(); });
+  window.addEventListener("themechange", function () { setTimeout(redraw, 0); });
+  window.addEventListener("resize", redraw);
 })();

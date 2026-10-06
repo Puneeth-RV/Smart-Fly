@@ -7,7 +7,9 @@
 <meta name="description" content="A simulated fruit-fly brain, built from the real connectome, learning Super Mario Bros level by level.">
 <script>
   // Apply the saved theme before first paint, so the page never flashes.
-  (function(){ try { var t = localStorage.getItem("theme");
+  (function(){ try { var q = (location.search.match(/[?&]theme=(light|dark|system)/) || [])[1];
+    if (q) localStorage.setItem("theme", q);
+    var t = localStorage.getItem("theme");
     if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
   } catch (e) {} })();
 </script>
@@ -76,6 +78,18 @@
     </aside>
   </section>
 
+  <section class="block view-theater" hidden>
+    <header class="block-head">
+      <h2>Watch a finished level</h2>
+      <p>Pick any level it has mastered. Everyone watching sees the same run, so requests wait
+         their turn. With nothing requested it replays finished levels on its own.</p>
+    </header>
+    <div class="picker" id="picker"></div>
+    <p class="note" id="queue-note"></p>
+    <h3 class="sub">Recent runs</h3>
+    <ol class="runs" id="runs"></ol>
+  </section>
+
   <section class="block">
     <header class="block-head">
       <h2>How it sees</h2>
@@ -84,13 +98,14 @@
     <ol class="pipeline">
       <li>
         <canvas id="v-eye" class="viz wide"></canvas>
-        <h3><span class="step">1</span> The eye</h3>
-        <p>3,354 photoreceptors, each assigned to a patch of the screen. Bright marks are edges.</p>
+        <h3><span class="step">1</span> What reaches the eye</h3>
+        <p>The game reduced to the 24 × 15 patches the eye covers. Bright marks are edges.</p>
       </li>
       <li>
-        <canvas id="v-first" class="viz"></canvas>
-        <h3><span class="step">2</span> First layer</h3>
-        <p>Neurons one synapse behind the eye, arranged by where in view they look.</p>
+        <canvas id="v-photo" class="viz wide"></canvas>
+        <h3><span class="step">2</span> Photoreceptors</h3>
+        <p>The 3,354 light-sensing neurons themselves, responding. This is the brain’s own
+           activity, not the picture.</p>
       </li>
       <li>
         <canvas id="v-deep" class="viz"></canvas>
@@ -125,17 +140,6 @@
     </ul>
   </section>
 
-  <section class="block view-theater" hidden>
-    <header class="block-head">
-      <h2>Watch a finished level</h2>
-      <p>Pick any level it has mastered. Everyone watching sees the same run, so requests wait
-         their turn. With nothing requested it replays finished levels on its own.</p>
-    </header>
-    <div class="picker" id="picker"></div>
-    <p class="note" id="queue-note"></p>
-    <h3 class="sub">Recent runs</h3>
-    <ol class="runs" id="runs"></ol>
-  </section>
 
   <section class="block">
     <header class="block-head">

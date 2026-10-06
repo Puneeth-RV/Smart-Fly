@@ -142,7 +142,7 @@ h1 em { font-style: italic; }
 .sub { font: 600 13px var(--sans); margin: 28px 0 10px; }
 .note { color: var(--ink-3); font-size: 14px; min-height: 1.6em; margin: 12px 0 0; }
 
-.pipeline { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1.35fr 1fr 1fr 1fr; gap: 22px; counter-reset: s; }
+.pipeline { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1.2fr 1.2fr 1fr 1fr; gap: 22px; counter-reset: s; }
 .pipeline li { position: relative; }
 .pipeline li + li::before {
   content: ""; position: absolute; left: -15px; top: calc(50% - 60px); width: 8px; height: 8px;
