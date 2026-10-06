@@ -83,7 +83,14 @@ def play_loop(level, tag, log_path, calib, brain_steps, frame_skip, dps, policy=
         order = np.argsort(agent.grid_cell, kind="stable")
         pick = order[np.linspace(0, order.size - 1, 600).astype(int)]
         raster_ids = agent.grid_idx[pick]
-        mario = Mario(f"SuperMarioBros-{level}-v0", retina=retina_shape)
+        camp = OUT / "campaign.json"
+        games = {}
+
+        def game(lv):
+            if lv not in games:
+                games[lv] = Mario(f"SuperMarioBros-{lv}-v0", retina=retina_shape)
+            return games[lv]
+        rng = np.random.default_rng()
         attempts, wins, hist = 0, 0, []
         with LOCK:
             STATE["ready"] = True
@@ -93,7 +100,22 @@ def play_loop(level, tag, log_path, calib, brain_steps, frame_skip, dps, policy=
             net.load_state_dict(s["net"])
             mean, var, _ = s["norm"]
             ck_age = time.time() - ck.stat().st_mtime
+            # Follow the campaign's current level when one is running.
+            cst = None
+            if camp.exists():
+                try:
+                    cst = json.loads(camp.read_text())
+                    level = cst.get("current") or level
+                except Exception:
+                    pass
+            mario = game(level)
             retina = mario.reset()
+            # Random idle start, as in training and testing: from an identical
+            # start every attempt is the same replay and the page overstates it.
+            for _ in range(int(rng.integers(0, 31))):
+                retina, _, d_, _ = mario.step(0)
+                if d_:
+                    retina = mario.reset()
             agent.brain.reset(); agent.prev_px = None
             agent.prev_grid = np.zeros(agent.n_grid, dtype=np.float32)
             flag, dec, a = False, 0, None
@@ -171,14 +193,17 @@ def play_loop(level, tag, log_path, calib, brain_steps, frame_skip, dps, policy=
                         "raster_n": int(raster_ids.size),
                         "reward_trace": trace, "return": round(ret, 2),
                         "attention": [round(float(v), 3) for v in sal],
-                        "grid": [20, 16], "policy": policy,
+                        "grid": [20, 16], "policy": policy, "level": level,
+                        "campaign": None if cst is None else {
+                            k: cst.get(k) for k in ("current", "mastered", "parked", "order")}
+                        | {"tests": (cst or {}).get("tests", [])[-30:]},
                     })
                 if dec > 900:            # a stuck policy should not hold the screen forever
                     break
                 time.sleep(max(0.0, 1.0 / dps - (time.time() - t0)))
             attempts += 1
             wins += int(flag)
-            hist.append({"attempt": attempts, "x": int(mario.max_x), "flag": flag,
+            hist.append({"attempt": attempts, "x": int(mario.max_x), "flag": flag, "level": level,
                          "ckpt_frames": float(s.get("frames", 0)) / 1e6})
             with LOCK:
                 STATE.update({"attempts": attempts, "wins": wins,
