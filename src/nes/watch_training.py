@@ -83,7 +83,7 @@ def play_loop(level, tag, log_path, calib, brain_steps, frame_skip, dps, policy=
         order = np.argsort(agent.grid_cell, kind="stable")
         pick = order[np.linspace(0, order.size - 1, 600).astype(int)]
         raster_ids = agent.grid_idx[pick]
-        camp = OUT / "campaign.json"
+        camp = OUT / "campaign_state.json"
         games = {}
 
         def game(lv):
