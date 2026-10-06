@@ -416,6 +416,45 @@ python -u src/nes/watch_training.py --tag ppo_fly_v2 --log out/ppo_fly_v2.log
 
 The trained fly is `out/ppo_fly_v2.pt`.
 
+## The campaign and the public site
+
+**Campaign** (`src/nes/campaign.py`). The fly works through all 32 levels
+unattended. It trains the current level in 1.5M-frame chunks, with 40% of
+practice spent on levels it has already seen so it does not forget them, then
+takes a test: 10 runs on its top choice only, each from a random start. 8 of 10
+reaching the flag marks the level mastered and it moves on; a level not passed
+after 25M frames is set aside and revisited later. Training itself also starts
+every attempt from a random idle delay -- from a fixed start the first 1-1 fly
+"finished 20/20" by replaying one memorised path, and 4/10 once starts varied.
+With random starts it passed 1-1 at 10/10 on its first test. State lives in
+`out/campaign_state.json`, so it resumes after any interruption.
+
+**Public site** (`src/nes/site_server.py`, `out/site/`). Two channels, each a
+copy of the fly playing continuously: *Training now* follows the campaign's
+current level with the newest weights, and *Finished levels* plays any mastered
+level on request (one shared queue, so everyone watches the same run) and
+replays finished levels when idle. The page shows the game with where the fly is
+looking, the buttons it weighed, what reaches its eye, its photoreceptors'
+activity, the deeper optic lobe, a scrolling view of 480 neurons, every reward
+and punishment, the 32-level map, the tests, and training curves. Light, dark
+and auto themes. Visitors are read-only: the only action is requesting a
+mastered level, rate-limited per address. The server binds to 127.0.0.1.
+
+```bash
+./run_site.sh                                   # start or resume both, detached
+open http://localhost:8090/                     # ?theme=dark  ?view=theater
+cloudflared tunnel --url http://localhost:8090  # to share it publicly
+```
+
+The Mac must stay awake (plugged in, lid open) for either to run.
+
+**Known gap.** Probing the live channel showed that the first layer of the optic
+lobe behind the photoreceptors is silent in the graded model: photoreceptor
+output is inhibitory and pins those cells at zero, so the policy works from the
+photoreceptors and the deeper optic lobe. Giving those cells the right resting
+level is the next fix to the model; it needs retraining, so it waits for a
+natural break in the campaign.
+
 ## Where the model departs from biology
 
 Stated plainly, because these are the things that would matter to anyone
