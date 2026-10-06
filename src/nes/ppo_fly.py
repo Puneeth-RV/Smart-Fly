@@ -87,7 +87,8 @@ def make_fly(brain_steps, frame_skip, calib, v2):
     return agent, (24, 15)
 
 
-def _worker(conn, levels, calib, brain_steps, frame_skip, features_mode, seed, stack, v2):
+def _worker(conn, levels, calib, brain_steps, frame_skip, features_mode, seed, stack, v2,
+            start_jitter=0):
     import warnings
     warnings.filterwarnings("ignore")
     from nes.mario import Mario
@@ -115,10 +116,21 @@ def _worker(conn, levels, calib, brain_steps, frame_skip, features_mode, seed, s
             agent.brain.step(agent.ext)
         return agent.features()
 
+    names = [lv for lv, _ in levels]
+    probs = np.array([w for _, w in levels], np.float64); probs /= probs.sum()
+
     def reset():
-        level = levels[int(rng.integers(len(levels)))]
+        level = names[int(rng.choice(len(names), p=probs))]
         m = make(level)
         retina = m.reset()
+        # Random idle start. The game is deterministic, so without this every
+        # attempt begins identically and the policy can pass by memorising one
+        # trajectory: the first 1-1 fly finished 20/20 from a fixed start and
+        # 4/10 when starts varied by a fraction of a second.
+        for _ in range(int(rng.integers(0, start_jitter + 1))):
+            retina, _, d, _ = m.step(0)
+            if d:
+                retina = m.reset()
         agent.brain.reset(); agent.prev_px = None
         agent.prev_grid = np.zeros(agent.n_grid, dtype=np.float32)
         state.update(m=m, level=level, best=0, since=0, ret=0.0, steps=0)
@@ -163,14 +175,16 @@ def _worker(conn, levels, calib, brain_steps, frame_skip, features_mode, seed, s
 
 
 class VecEnv:
-    def __init__(self, n, levels, calib, brain_steps, frame_skip, features_mode, stack, v2):
+    def __init__(self, n, levels, calib, brain_steps, frame_skip, features_mode, stack, v2,
+                 start_jitter=0):
         ctx = mp.get_context("spawn")
         self.conns, self.procs = [], []
         for i in range(n):
             a, b = ctx.Pipe()
             p = ctx.Process(target=_worker, daemon=True,
                             args=(b, levels, calib, brain_steps, frame_skip,
-                                  features_mode, 1000 + i, stack, v2))
+                                  features_mode, 1000 + i + int(time.time()) % 10000,
+                                  stack, v2, start_jitter))
             p.start(); self.conns.append(a); self.procs.append(p)
         self.obs = np.stack([c.recv() for c in self.conns])
 
@@ -228,7 +242,10 @@ def build_net(d, n_actions):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--levels", default="1-1")
+    ap.add_argument("--levels", default="1-1",
+                    help="comma list; optional weights as 1-1:0.6,1-2:0.4")
+    ap.add_argument("--start-jitter", type=int, default=0,
+                    help="idle frames before control, drawn from 0..N per attempt")
     ap.add_argument("--envs", type=int, default=8)
     ap.add_argument("--rollout", type=int, default=256)
     ap.add_argument("--hours", type=float, default=0.0,
@@ -260,10 +277,13 @@ def main():
 
     import torch
     torch.set_num_threads(2)
-    levels = [s.strip() for s in args.levels.split(",")]
+    levels = []
+    for tok in args.levels.split(","):
+        name, _, w = tok.strip().partition(":")
+        levels.append((name, float(w) if w else 1.0))
     print(f"levels: {levels}   features: {args.features}   envs: {args.envs}")
     env = VecEnv(args.envs, levels, args.calibration, args.brain_steps,
-                 args.frame_skip, args.features, args.stack, args.v2)
+                 args.frame_skip, args.features, args.stack, args.v2, args.start_jitter)
     d = env.obs.shape[1]; A = 7
     net = build_net(d, A)
     opt = torch.optim.Adam(net.parameters(), lr=args.lr, eps=1e-5)
