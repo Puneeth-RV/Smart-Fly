@@ -26,7 +26,7 @@ sys.path.insert(0, str(ROOT / "src"))
 OUT = ROOT / "out"
 
 
-def run(cond, ck_path, episodes, seed):
+def run(cond, ck_path, episodes, seed, level="1-1", quiet=False):
     import torch
     from nes.mario import Mario
     from nes.ppo_fly import Memory, build_net, make_fly
@@ -39,7 +39,7 @@ def run(cond, ck_path, episodes, seed):
     net.load_state_dict(s["net"]); net.eval()
     mean, var, _ = s["norm"]
     mem = Memory(agent.n_feat, k)
-    m = Mario("SuperMarioBros-1-1-v0", retina=shape)
+    m = Mario(f"SuperMarioBros-{level}-v0", retina=shape)
     rng = np.random.default_rng(seed)
     out = []
     for ep in range(episodes):
@@ -76,7 +76,8 @@ def run(cond, ck_path, episodes, seed):
             else:
                 since += 1
         out.append({"x": int(m.max_x), "flag": flag})
-        print(f"  {cond:9s} ep {ep + 1}: x {m.max_x:5d}{'  FLAG' if flag else ''}", flush=True)
+        if not quiet:
+            print(f"  {cond:9s} ep {ep + 1}: x {m.max_x:5d}{'  FLAG' if flag else ''}", flush=True)
     return out
 
 
@@ -85,10 +86,11 @@ def main():
     ap.add_argument("--ckpt", default=str(OUT / "ppo_fly_v2.pt"))
     ap.add_argument("--episodes", type=int, default=6)
     ap.add_argument("--cond", default="sight,blind,scrambled,random")
+    ap.add_argument("--level", default="1-1")
     args = ap.parse_args()
     res = {}
     for c in args.cond.split(","):
-        res[c] = run(c, args.ckpt, args.episodes, seed=7)
+        res[c] = run(c, args.ckpt, args.episodes, seed=7, level=args.level)
     print("\ncondition   mean x   flags")
     for c, v in res.items():
         print(f"{c:10s} {np.mean([e['x'] for e in v]):7.0f}   {sum(e['flag'] for e in v)}/{len(v)}")
