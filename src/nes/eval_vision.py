@@ -29,7 +29,7 @@ OUT = ROOT / "out"
 def run(cond, ck_path, episodes, seed, level="1-1", quiet=False):
     import torch
     from nes.mario import Mario
-    from nes.ppo_fly import Memory, build_net, make_fly
+    from nes.ppo_fly import STUCK_LIMIT, Memory, build_net, make_fly
     s = torch.load(ck_path, weights_only=False)
     a_ = s["args"]
     agent, shape = make_fly(int(a_["brain_steps"]), int(a_["frame_skip"]),
@@ -49,7 +49,7 @@ def run(cond, ck_path, episodes, seed, level="1-1", quiet=False):
         agent.brain.reset(); agent.prev_px = None
         agent.prev_grid = np.zeros(agent.n_grid, np.float32)
         a, best, since, flag = None, 0, 0, False
-        while not m.done and since < 120:
+        while not m.done and since < STUCK_LIMIT:
             if cond == "random":
                 a = int(rng.integers(7))
             else:
