@@ -95,7 +95,7 @@ class Channel:
     def _run(self):
         import torch
         from nes.mario import ACTIONS, Mario
-        from nes.ppo_fly import Memory, build_net, make_fly
+        from nes.ppo_fly import STUCK_LIMIT, Memory, build_net, make_fly
 
         while not self.ckpt.exists():
             time.sleep(5)
@@ -142,7 +142,7 @@ class Channel:
             a, flag, dec, best, since, ret = None, False, 0, 0, 0, 0.0
             trace: list = []
             attempts += 1
-            while not m.done and since < 120 and dec < 1500:
+            while not m.done and since < STUCK_LIMIT and dec < 1500:
                 t0 = time.time()
                 eye = retina.copy()
                 agent.ext = agent._drive(retina)
