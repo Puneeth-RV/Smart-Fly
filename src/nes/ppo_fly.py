@@ -41,7 +41,12 @@ sys.path.insert(0, str(ROOT / "src"))
 OUT = ROOT / "out"
 
 FLAG_BONUS = 50.0          # the library gives nothing for finishing; we do
-STUCK_LIMIT = 120          # decisions without new ground before giving up
+# Decisions without new ground before an attempt is given up (15 a second).
+# Was 120 (8 s). 1-2 ends by walking into a sideways pipe in a wall, and the
+# fly reached it and kept jumping at it -- jumping is what every earlier
+# obstacle needed -- until the 8 s ran out. 300 (20 s) leaves room for the
+# occasional plain walk right that enters the pipe and gets rewarded.
+STUCK_LIMIT = 300
 N_ACTIONS = 7
 
 
