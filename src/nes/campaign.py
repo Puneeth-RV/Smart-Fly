@@ -106,13 +106,34 @@ def next_level(st):
     return st["parked"][0] if st["parked"] else None
 
 
+def budget(st, lv, args):
+    return st.get("budget", {}).get(lv, args.max_level_frames)
+
+
+def getting_close(st, lv, args):
+    """Worth more time: a recent test came near passing, or tests are improving."""
+    recent = [t for t in st["tests"] if t["level"] == lv][-3:]
+    if not recent:
+        return False
+    if max(t["flags"] for t in recent) >= args.extend_if:
+        return True
+    return len(recent) == 3 and recent[-1]["mean_x"] > recent[0]["mean_x"] * 1.15
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--chunk", type=float, default=1.5e6, help="frames between tests")
     ap.add_argument("--episodes", type=int, default=10)
     ap.add_argument("--pass-flags", type=int, default=8, help="flags out of --episodes to pass")
     ap.add_argument("--max-level-frames", type=float, default=25e6,
-                    help="park a level after this much training without passing")
+                    help="first budget for a level before deciding to park it")
+    ap.add_argument("--extend-frames", type=float, default=7.5e6,
+                    help="extra budget granted at a time to a level that is getting close")
+    ap.add_argument("--extend-if", type=int, default=3,
+                    help="extend when one of the last 3 tests reached this many flags, "
+                         "or the tests are still improving")
+    ap.add_argument("--hard-cap", type=float, default=50e6,
+                    help="never spend more than this on a level in one visit")
     ap.add_argument("--seed-from", default=str(OUT / "ppo_fly_v2.pt"))
     args = ap.parse_args()
     st = load_state(args)
@@ -122,6 +143,8 @@ def main():
         f0 = total_frames()
         train_chunk(st, args)
         st["level_frames"][cur] = st["level_frames"].get(cur, 0) + total_frames() - f0
+        st.setdefault("level_total", {})
+        st["level_total"][cur] = st["level_total"].get(cur, 0) + total_frames() - f0
         flags, mean_x = test(cur, args.episodes)
         rec = {"t": time.time(), "level": cur, "flags": flags, "of": args.episodes,
                "mean_x": round(mean_x), "frames": total_frames()}
@@ -135,12 +158,21 @@ def main():
             st["mastered"].append(cur)
             print(f"  MASTERED {cur}", flush=True)
             st["current"] = next_level(st)
-        elif st["level_frames"][cur] >= args.max_level_frames:
+        elif st["level_frames"][cur] >= budget(st, cur, args) and getting_close(st, cur, args) \
+                and budget(st, cur, args) + args.extend_frames <= args.hard_cap:
+            # Budget spent but clearly learning: 1-2 was parked at 5/10 after
+            # climbing 0, 1, 5, 2, 3, 5 -- a level that close is cheaper to finish
+            # now than to relearn later.
+            st.setdefault("budget", {})[cur] = budget(st, cur, args) + args.extend_frames
+            print(f"  EXTENDED {cur} to {st['budget'][cur] / 1e6:.1f}M frames (getting close)",
+                  flush=True)
+        elif st["level_frames"][cur] >= budget(st, cur, args):
             if cur not in st["parked"]:
                 st["parked"].append(cur)
             else:                              # rotate to the back of the queue
                 st["parked"].remove(cur); st["parked"].append(cur)
             st["level_frames"][cur] = 0
+            st.get("budget", {}).pop(cur, None)
             print(f"  PARKED {cur} (will return)", flush=True)
             st["current"] = next_level(st)
         save(st)
