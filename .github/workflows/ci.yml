@@ -23,8 +23,8 @@ jobs:
 
       - name: Lint
         run: |
-          ruff check smartfly tests
-          ruff format --check smartfly tests
+          ruff check smartfly tests scripts
+          ruff format --check smartfly tests scripts
 
       - name: Test
         run: pytest -v
