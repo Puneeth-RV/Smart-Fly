@@ -47,3 +47,9 @@ out/watch*.log
 
 # Campaign state, checkpoint and logs (live, regenerated as it trains)
 out/campaign*
+
+# Training output (checkpoints, logs, campaign state)
+runs/
+*.egg-info/
+.ruff_cache/
+.pytest_cache/

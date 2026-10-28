@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "smartfly"
+version = "1.0.0"
+description = "A fruit fly's visual system, simulated from the real connectome, learning to play Super Mario Bros."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Puneeth R V" }]
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=2.0",
+    "scipy>=1.14",
+    "torch>=2.4",
+    "pillow>=10",
+    "gym==0.26.2",
+    "nes-py==8.2.1",
+    "gym-super-mario-bros==7.4.0",
+]
+
+[project.optional-dependencies]
+# Only needed to rebuild the connectome from the raw release.
+connectome = ["pandas>=2.2", "pyarrow>=17"]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[project.urls]
+Repository = "https://github.com/Puneeth-RV/Smart-Fly"
+
+[tool.setuptools.packages.find]
+include = ["smartfly*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["archive"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "SIM"]
+ignore = [
+    "N803", "N806",   # matrix names like W, Wt, X follow the maths
+    "B905",           # zip() without strict= is intended where lengths match by construction
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: needs data/visual_system.npz and the emulator"]

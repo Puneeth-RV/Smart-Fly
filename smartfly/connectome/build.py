@@ -1,16 +1,17 @@
-"""Turn the raw MaleCNS release into a signed sparse connectivity matrix.
+"""Turn the raw MaleCNS release into one signed sparse connectivity matrix.
 
-Inputs (all CC-BY, from https://male-cns.janelia.org/download/):
-  * connectome-weights-*.feather   segment-to-segment connection strengths
-  * body-annotations-*.feather     cell class / type / superclass per bodyId
+Inputs (CC-BY, fetched by `python -m smartfly.connectome.download`):
+  * connectome-weights-*.feather      segment-to-segment synapse counts
+  * body-annotations-*.feather        cell class / type / superclass per bodyId
   * body-neurotransmitters-*.feather  predicted transmitter per bodyId
 
-Output: data/processed/connectome.npz plus a populations.json sidecar, holding
+Output, in data/processed/:
+  * connectome.npz    CSR matrix W, W[i, j] = signed strength of i -> j; an
+                      unsigned copy; bodyIds; ommatidial (hex) coordinates
+  * populations.json  matrix indices of named cell populations
+  * meta.json         counts and the sign convention
 
-  * a CSR sparse matrix W where W[i, j] is the signed strength of i -> j
-  * the bodyId <-> matrix index mapping
-  * index arrays for each population the agent needs (photoreceptors, Kenyon
-    cells, MBONs, the two DAN families, descending neurons, motor neurons)
+    python -m smartfly.connectome.build      # ~2 min, ~6 GB RAM
 
 Sign convention
 ---------------
@@ -25,25 +26,20 @@ presynaptically from the transmitter identity:
                           of fly glutamatergic synapses are excitatory
     dopamine, serotonin, octopamine -> 0 for fast transmission
 
-The aminergic neurons are deliberately given zero fast weight because they act
-as neuromodulators. The dopaminergic neurons in particular are not wired in as
-ordinary drivers: they carry the reinforcement signal that gates plasticity, and
-are handled by the learning rule instead.
+The aminergic neurons get zero fast weight because they act as neuromodulators.
 """
 
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 import scipy.sparse as sp
 
-ROOT = Path(__file__).resolve().parents[2]
-RAW = ROOT / "data" / "raw"
-PROC = ROOT / "data" / "processed"
+from smartfly.paths import PROCESSED as PROC
+from smartfly.paths import RAW
 
 WEIGHTS_F = RAW / "connectome-weights-male-cns-v1.0-minconf-0.5.feather"
 ANNOT_F = RAW / "body-annotations-male-cns-v1.0-minconf-0.5.feather"
@@ -103,8 +99,10 @@ def load_edges() -> pd.DataFrame:
         pc.not_equal(t[pre], t[post]),  # autapses are reconstruction artefacts
     )
     t = t.filter(keep).select([pre, post, wt])
-    print(f"  {n0:,} edges -> {t.num_rows:,} after weight>={MIN_WEIGHT} "
-          f"and autapse removal ({t.num_rows / n0:.1%} retained)")
+    print(
+        f"  {n0:,} edges -> {t.num_rows:,} after weight>={MIN_WEIGHT} "
+        f"and autapse removal ({t.num_rows / n0:.1%} retained)"
+    )
 
     # This is a *segment*-to-segment table: it contains every reconstructed
     # fragment, not just neurons, which is why the raw body count runs into the
@@ -157,7 +155,7 @@ def load_signs() -> pd.DataFrame:
 
 
 def population_masks(annot: pd.DataFrame, index: dict[int, int], n: int) -> dict[str, list[int]]:
-    """Map the populations the agent needs onto matrix indices.
+    """Matrix indices of named cell populations.
 
     Selection is by the release's own annotations, so these are real identified
     cell populations rather than anything hand-drawn.
@@ -175,8 +173,8 @@ def population_masks(annot: pd.DataFrame, index: dict[int, int], n: int) -> dict
     sup = a["superclass"].fillna("")
 
     pops = {
-        # Vision. R1-R6 are the motion/luminance channel and the natural drive
-        # site for a runner task; R7/R8 are chromatic and kept separate.
+        # Vision. R1-R6 are the motion/luminance channel the fly's eye uses
+        # here; R7/R8 are chromatic and kept separate.
         "photoreceptor_R16": by(t.str.startswith("R1-R6")),
         "photoreceptor_R7R8": by(t.str.startswith("R7") | t.str.startswith("R8")),
         "optic_lobe": by(sup == "ol_intrinsic"),
@@ -220,8 +218,9 @@ def main() -> None:
     # photoreceptors themselves do not, so their retinal positions have to be
     # inferred from the columns they project into.
     hx = annot.dropna(subset=["assignedOlHex1", "assignedOlHex2"])
-    hex_by_body = dict(zip(hx.bodyId.to_numpy(),
-                           zip(hx.assignedOlHex1.to_numpy(), hx.assignedOlHex2.to_numpy())))
+    hex_by_body = dict(
+        zip(hx.bodyId.to_numpy(), zip(hx.assignedOlHex1.to_numpy(), hx.assignedOlHex2.to_numpy()))
+    )
     hex1 = np.full(len(bodies), np.nan, dtype=np.float32)
     hex2 = np.full(len(bodies), np.nan, dtype=np.float32)
     for i, b in enumerate(bodies):
@@ -243,25 +242,34 @@ def main() -> None:
     W = sp.csr_matrix((vals, (rows, cols)), shape=(n, n), dtype=np.float32)
     W.eliminate_zeros()
 
-    # The signed matrix deliberately zeroes the aminergic neurons, since they do
-    # not drive fast transmission -- but that also erases their wiring, and the
-    # dopaminergic projection onto MBON compartments is exactly what the
-    # learning rule needs to read. So keep an unsigned structural matrix too:
-    # signed W for dynamics, raw W for anatomy.
-    raw = sp.csr_matrix((edges.weight.to_numpy(np.float32), (rows, cols)),
-                        shape=(n, n), dtype=np.float32)
+    # The signed matrix zeroes the aminergic neurons, which also erases their
+    # wiring, so keep an unsigned structural matrix too: signed W for dynamics,
+    # raw W for anatomy (e.g. which cells a photoreceptor contacts).
+    raw = sp.csr_matrix(
+        (edges.weight.to_numpy(np.float32), (rows, cols)), shape=(n, n), dtype=np.float32
+    )
     raw.eliminate_zeros()
     print(f"  raw (unsigned, all transmitters): nnz={raw.nnz:,}")
-    print(f"  W: {W.shape} nnz={W.nnz:,} "
-          f"(exc {int((W.data > 0).sum()):,} / inh {int((W.data < 0).sum()):,})")
+    print(
+        f"  W: {W.shape} nnz={W.nnz:,} "
+        f"(exc {int((W.data > 0).sum()):,} / inh {int((W.data < 0).sum()):,})"
+    )
 
     pops = population_masks(annot, index, n)
 
     np.savez_compressed(
         PROC / "connectome.npz",
-        data=W.data, indices=W.indices, indptr=W.indptr, shape=np.array(W.shape),
-        raw_data=raw.data, raw_indices=raw.indices, raw_indptr=raw.indptr,
-        bodies=bodies, presign=presign, hex1=hex1, hex2=hex2,
+        data=W.data,
+        indices=W.indices,
+        indptr=W.indptr,
+        shape=np.array(W.shape),
+        raw_data=raw.data,
+        raw_indices=raw.indices,
+        raw_indptr=raw.indptr,
+        bodies=bodies,
+        presign=presign,
+        hex1=hex1,
+        hex2=hex2,
     )
     (PROC / "populations.json").write_text(json.dumps(pops))
     meta = {
@@ -272,9 +280,9 @@ def main() -> None:
         "populations": {k: len(v) for k, v in pops.items()},
     }
     (PROC / "meta.json").write_text(json.dumps(meta, indent=2))
-    print(f"\nwrote {PROC/'connectome.npz'}")
-    print(f"wrote {PROC/'populations.json'}")
-    print(f"wrote {PROC/'meta.json'}")
+    print(f"\nwrote {PROC / 'connectome.npz'}")
+    print(f"wrote {PROC / 'populations.json'}")
+    print(f"wrote {PROC / 'meta.json'}")
 
 
 if __name__ == "__main__":
