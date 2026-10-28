@@ -17,3 +17,7 @@ runs/
 
 # Local scratch from before the restructure
 out/
+
+# 3D assets used only by the archived scenes
+drosophila_-_adult_fruit_fly_-_ct_scan/
+data/skeletons/
