@@ -147,7 +147,7 @@ class Player:
             logits[0, a].backward()
             att = self._attention((x.grad[0] * x[0]).abs().detach().numpy())
         self._last = a
-        return Decision(a, probs, float(value[0]), f, att)
+        return Decision(a, probs, float(value[0].detach()), f, att)
 
     def _attention(self, saliency: np.ndarray) -> np.ndarray:
         """Gradient x input of the chosen button, summed per map cell over memory."""
