@@ -32,7 +32,7 @@ def test_visual_system_size(player):
 
 
 def test_trained_fly_decides_as_it_did(player):
-    """The trained 1-1 fly makes exactly the recorded decisions on the first 40 frames.
+    """The trained 1-1 fly makes the recorded decisions on its first 40 frames.
 
     Guards the whole chain -- emulator, retina, eye geometry, brain, features,
     policy -- against any change that would silently alter what it learned.
@@ -44,9 +44,11 @@ def test_trained_fly_decides_as_it_did(player):
     retina = game.reset()
     player.reset()
     for t, action in enumerate(ref["actions"]):
-        np.testing.assert_array_equal(retina, ref["retina"][t])
+        # Exact on one machine; across CPUs float rounding differs by ~1e-7, far
+        # below the smallest gap between the fly's top two buttons here (0.017).
+        np.testing.assert_allclose(retina, ref["retina"][t], atol=1e-5)
         d = player.decide(retina)
-        np.testing.assert_array_equal(d.features, ref["features"][t])
+        np.testing.assert_allclose(d.features, ref["features"][t], atol=1e-4)
         assert d.action == action, f"decision {t}"
         for _ in range(player.frame_skip):
             retina, _, done, _ = game.step(d.action)
