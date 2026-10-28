@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "A fruit fly's visual system, simulated from the real connectome, learning to play Super Mario Bros."
 readme = "README.md"
 license = { text = "MIT" }
-authors = [{ name = "Puneeth R V" }]
+authors = [{ name = "Puneeth-RV" }]
 requires-python = ">=3.11"
 dependencies = [
     "numpy>=2.0",

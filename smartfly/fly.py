@@ -12,8 +12,8 @@ runs the visual system for a few steps, and returns one feature vector:
 1,344 numbers in all. The order and grouping are what the trained policies were
 trained on, so they are kept exactly -- including two that turned out to carry
 little: `photo` groups photoreceptors by index rather than position, and
-`first` is silent, because photoreceptor output is inhibitory and pins the
-cells directly behind them at zero.
+`first` stays close to zero, because photoreceptor output is inhibitory and
+holds the cells directly behind them down.
 """
 
 from __future__ import annotations
