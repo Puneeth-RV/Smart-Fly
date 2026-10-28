@@ -27,6 +27,7 @@ from PIL import Image
 
 from smartfly.campaign import STATE
 from smartfly.game import ACTIONS, Mario
+from smartfly.paths import MODELS
 from smartfly.train import FLAG_BONUS, STUCK_LIMIT
 
 DECISIONS_PER_SECOND = 15.0
@@ -34,10 +35,13 @@ RASTER_NEURONS = 480
 
 
 def campaign_state() -> dict:
-    try:
-        return json.loads(STATE.read_text())
-    except (OSError, ValueError):
-        return {}
+    """The running campaign's state, or the snapshot shipped with the trained fly."""
+    for path in (STATE, MODELS / "campaign-state.json"):
+        try:
+            return json.loads(path.read_text())
+        except (OSError, ValueError):
+            continue
+    return {}
 
 
 def _r3(values) -> list[float]:
