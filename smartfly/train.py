@@ -200,8 +200,11 @@ def train(args: argparse.Namespace) -> None:
         )
 
     if total_steps * args.frame_skip >= args.frames:
-        print(f"already at {total_steps * args.frame_skip / 1e6:.2f}M frames, the --frames total; "
-              "nothing to do", flush=True)
+        print(
+            f"already at {total_steps * args.frame_skip / 1e6:.2f}M frames, the --frames total; "
+            "nothing to do",
+            flush=True,
+        )
     gamma, lam, clip, vf_coef = args.gamma, 0.95, 0.2, 0.5
     T, N = args.rollout, args.envs
     budget = args.frames
