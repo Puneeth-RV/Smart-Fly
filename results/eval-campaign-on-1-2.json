@@ -4,7 +4,7 @@
  "results": {
   "normal": [
    {
-    "x": 2142,
+    "x": 1660,
     "flag": false
    },
    {
@@ -12,119 +12,119 @@
     "flag": true
    },
    {
-    "x": 2550,
+    "x": 3161,
+    "flag": true
+   },
+   {
+    "x": 1660,
     "flag": false
    },
    {
-    "x": 2674,
+    "x": 3161,
+    "flag": true
+   },
+   {
+    "x": 3161,
+    "flag": true
+   },
+   {
+    "x": 964,
     "flag": false
    },
    {
-    "x": 2550,
+    "x": 2140,
     "flag": false
    },
    {
-    "x": 2675,
-    "flag": false
+    "x": 3161,
+    "flag": true
    },
    {
-    "x": 896,
-    "flag": false
-   },
-   {
-    "x": 1197,
-    "flag": false
-   },
-   {
-    "x": 2676,
-    "flag": false
-   },
-   {
-    "x": 1954,
-    "flag": false
+    "x": 3161,
+    "flag": true
    }
   ],
   "blind": [
    {
-    "x": 87,
+    "x": 905,
     "flag": false
    },
    {
-    "x": 87,
+    "x": 905,
     "flag": false
    },
    {
-    "x": 87,
+    "x": 905,
     "flag": false
    },
    {
-    "x": 87,
+    "x": 905,
     "flag": false
    },
    {
-    "x": 87,
+    "x": 905,
     "flag": false
    },
    {
-    "x": 87,
+    "x": 905,
     "flag": false
    },
    {
-    "x": 87,
+    "x": 905,
     "flag": false
    },
    {
-    "x": 121,
+    "x": 180,
     "flag": false
    },
    {
-    "x": 124,
+    "x": 191,
     "flag": false
    },
    {
-    "x": 224,
+    "x": 179,
     "flag": false
    }
   ],
   "scrambled": [
    {
-    "x": 119,
+    "x": 171,
     "flag": false
    },
    {
-    "x": 85,
+    "x": 170,
     "flag": false
    },
    {
-    "x": 79,
+    "x": 673,
     "flag": false
    },
    {
-    "x": 84,
+    "x": 182,
     "flag": false
    },
    {
-    "x": 59,
+    "x": 184,
     "flag": false
    },
    {
-    "x": 61,
+    "x": 177,
     "flag": false
    },
    {
-    "x": 103,
+    "x": 184,
     "flag": false
    },
    {
-    "x": 100,
+    "x": 173,
     "flag": false
    },
    {
-    "x": 62,
+    "x": 484,
     "flag": false
    },
    {
-    "x": 53,
+    "x": 183,
     "flag": false
    }
   ],
