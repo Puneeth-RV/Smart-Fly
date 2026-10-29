@@ -4,8 +4,8 @@
  "results": {
   "normal": [
    {
-    "x": 2747,
-    "flag": false
+    "x": 3161,
+    "flag": true
    },
    {
     "x": 3161,
@@ -46,85 +46,85 @@
   ],
   "blind": [
    {
-    "x": 334,
+    "x": 314,
     "flag": false
    },
    {
-    "x": 334,
+    "x": 314,
     "flag": false
    },
    {
-    "x": 334,
+    "x": 314,
     "flag": false
    },
    {
-    "x": 334,
+    "x": 314,
     "flag": false
    },
    {
-    "x": 334,
+    "x": 314,
     "flag": false
    },
    {
-    "x": 334,
+    "x": 314,
     "flag": false
    },
    {
-    "x": 334,
+    "x": 314,
     "flag": false
    },
    {
-    "x": 334,
+    "x": 314,
     "flag": false
    },
    {
-    "x": 334,
+    "x": 311,
     "flag": false
    },
    {
-    "x": 334,
+    "x": 311,
     "flag": false
    }
   ],
   "scrambled": [
    {
-    "x": 118,
+    "x": 310,
     "flag": false
    },
    {
-    "x": 122,
+    "x": 676,
     "flag": false
    },
    {
-    "x": 244,
+    "x": 1524,
     "flag": false
    },
    {
-    "x": 203,
+    "x": 683,
     "flag": false
    },
    {
-    "x": 65,
+    "x": 709,
     "flag": false
    },
    {
-    "x": 116,
+    "x": 689,
     "flag": false
    },
    {
-    "x": 106,
+    "x": 312,
     "flag": false
    },
    {
-    "x": 104,
+    "x": 1126,
     "flag": false
    },
    {
-    "x": 97,
+    "x": 314,
     "flag": false
    },
    {
-    "x": 90,
+    "x": 707,
     "flag": false
    }
   ],

@@ -13,8 +13,8 @@
 The eye and optic lobe of a male fruit fly (92,743 neurons and 3.69 million
 synapses, from the MaleCNS v1.0 connectome) are simulated from their real wiring
 and shown the game screen. A small network, trained by reinforcement learning,
-turns what those neurons do into button presses. The fly finishes World 1-1 in
-9 out of 10 attempts, using only its top choice, from varied starts.
+turns what those neurons do into button presses. The fly has mastered Worlds 1-1
+and 1-2, using only its top choice, from varied starts.
 
 ## Does it really see?
 
@@ -23,18 +23,19 @@ starting after a random delay:
 
 | | World 1-1 | World 1-2 |
 |---|---|---|
-| **Normal eyes** | **9 / 10 finished** · avg distance 3,120 | 1 / 10 · avg 2,248 |
-| Blind (screen blanked) | 0 / 10 · 334 | 0 / 10 · 108 |
-| Scrambled (same pixels, random positions) | 0 / 10 · 126 | 0 / 10 · 80 |
+| **Normal eyes** | **10 / 10 finished** · avg distance 3,161 | **6 / 10 finished** · avg 2,539 |
+| Blind (screen blanked) | 0 / 10 · 313 | 0 / 10 · 688 |
+| Scrambled (same pixels, random positions) | 0 / 10 · 705 | 0 / 10 · 258 |
 | Random buttons | 0 / 10 · 710 | 0 / 10 · 646 |
 
 Blind, it walks into the first Goomba. Scrambled, so that it gets the same
-brightness and the same amount of change but no layout, it does worse than
+brightness and the same amount of change but no layout, it does no better than
 random buttons. Its skill depends on *where* things are on the screen.
 
-World 1-2 is in progress. Its tests have ranged from 0 to 5 of 10 as training
-went on; ten attempts is a small sample. Measured with `python -m smartfly.evaluate`;
-raw results are in [`results/`](results/).
+Ten attempts is a small sample. On 1-2 the fly passed its campaign test 9 of 10;
+over 30 fresh attempts it finished 21 (70%). Of the 9 failures, 3 still ran over
+the ceiling into the Warp Zone and 6 died earlier in the level. Measured with `python -m smartfly.evaluate`; raw results
+are in [`results/`](results/).
 
 ## How it works
 
@@ -156,13 +157,17 @@ explained in [docs/journey.md](docs/journey.md):
   the photoreceptors' own map took it to 85%.
 - **"20 out of 20" was one memorised path.** From varied starts it was 4 of 10;
   training with varied starts took it to 10 of 10.
+- **The reward chose the Warp Zone.** On 1-2 the fly stalled for 40M frames. Its
+  failures ended in the Warp Zone, reached over the ceiling: more distance than
+  the real exit, but no way out without a Down button. Making that route a dead
+  end took it from 0/10 to 9/10 in 7.5M frames.
 - **The simulated optic lobe is chaotic.** A one-in-ten-million nudge changes the
   fly's choices within a second of play, so exact runs differ between computers;
   results are rates over many varied attempts.
 
 ## Limitations
 
-- It has mastered one level and is partway through a second. One pass through
+- It has mastered two levels and is working on the third. One pass through
   all 32 levels is roughly two weeks of computing, and some (the maze castles and
   underwater levels) may not pass.
 - The policy learns each level; it does not play unseen ones.
