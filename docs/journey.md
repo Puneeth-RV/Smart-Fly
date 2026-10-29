@@ -99,6 +99,14 @@ what every earlier obstacle needed, until the 8-second no-progress limit
 restarted the level. With 20 seconds it occasionally walked in, was rewarded, and
 went from never finishing 1-2 to finishing half its tests.
 
+Then it stalled, its tests swinging between 1 and 7 of 10 for 12M frames.
+Saving the last screen of every failed attempt showed why: most ended in the
+Warp Zone, reached by running along the ceiling past the exit pipe. Its pipes
+need the Down button, which the fly does not have, so it ran into the far wall
+until time ran out. Yet the ceiling route paid more distance than the exit,
+whose pipe moves Mario ahead in a single step, so the policy kept taking it.
+Now the attempt ends there, at the cost of a death.
+
 ## What carried through
 
 - **Measure before fixing.** Every real fix here (the blind eye, the spiking

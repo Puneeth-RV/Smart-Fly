@@ -123,6 +123,11 @@ divided by 10, plus 5 for the flag.
   everything in the next ten seconds.
 - **20 s of patience.** An attempt is abandoned after 300 decisions with no new
   ground. 8 s was too short for 1-2's exit pipe.
+- **Dead ends end the attempt.** In 1-2, running over the ceiling past the exit
+  pipe leads to the Warp Zone, whose pipes need the Down button the fly does not
+  have. It paid more distance than the real exit, so the policy kept choosing it.
+  Passing that point without going through a pipe now ends the attempt and costs
+  what dying does.
 
 ## The campaign
 
