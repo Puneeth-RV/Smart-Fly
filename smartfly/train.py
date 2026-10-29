@@ -35,6 +35,13 @@ FLAG_BONUS = 50.0
 # 8 s was too short for 1-2, which ends by walking into a sideways pipe: the fly
 # kept jumping at it, as every earlier obstacle needed, until time ran out.
 STUCK_LIMIT = 300
+# Routes with no way out for a fly without a Down button, ended and penalised
+# like a death as soon as Mario passes this distance without a pipe warp. In 1-2,
+# running over the ceiling past the exit pipe (entered at 2,643) leads to the
+# Warp Zone; it paid more distance than the exit, and 40% of failed attempts
+# ended there, stuck against its wall.
+DEAD_ENDS = {"1-2": 2720}
+DEAD_END_PENALTY = 25.0  # what dying costs in the game
 
 
 def parse_levels(spec: str) -> list[tuple[str, float]]:
@@ -98,6 +105,9 @@ def _worker(conn, levels, steps, frame_skip, stack, vision, start_jitter, seed):
                 break
         if flag:
             reward += FLAG_BONUS
+        if not game.warped and game.max_x > DEAD_ENDS.get(ep["level"], np.inf):
+            reward -= DEAD_END_PENALTY
+            done = True
         ep["steps"] += 1
         ep["ret"] += reward
         if game.max_x > ep["best"]:
