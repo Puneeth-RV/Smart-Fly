@@ -12,7 +12,8 @@ Loop until every level is passed:
    15% across the last three) -> another 7.5M frames, up to 50M.
 
 All state lives in runs/campaign/state.json and the fly in runs/campaign/fly.pt,
-so it can be stopped at any point and resumes where it was.
+so it can be stopped at any point and resumes where it was. The fly that passed
+each level is kept as runs/campaign/mastered-<level>.pt, since fly.pt moves on.
 
     python -m smartfly.campaign
 """
@@ -170,6 +171,7 @@ def run(args: argparse.Namespace) -> None:
             if cur in st["parked"]:
                 st["parked"].remove(cur)
             st["mastered"].append(cur)
+            shutil.copy(FLY, CAMPAIGN / f"mastered-{cur}.pt")
             print(f"  MASTERED {cur}", flush=True)
             st["current"] = next_level(st)
         elif st["level_frames"][cur] >= budget(st, cur, args):
