@@ -43,6 +43,9 @@ class Mario:
     bytes that briefly read as garbage (up to 0xFFFF) during some transitions,
     and taken at face value one such frame once scored a run at 81x random, so
     a reading that jumps further than Mario can move is ignored.
+
+    `warped` turns true when Mario jumps forward through a pipe, as at the end
+    of 1-2.
     """
 
     def __init__(self, level: str = "1-1", retina_shape: tuple[int, int] = RETINA):
@@ -74,6 +77,7 @@ class Mario:
         self.frame = np.asarray(obs)
         self.done = False
         self.max_x = 0
+        self.warped = False
         self._last_x: int | None = None
         return self.observe()
 
@@ -89,6 +93,8 @@ class Mario:
             pass  # garbage bytes
         elif self._last_x is None or not 0 <= x - self._last_x <= 24:
             # First reading, a pipe warp or a respawn: re-anchor without counting it.
+            if self._last_x is not None and x > self._last_x:
+                self.warped = True
             self._last_x = x
             if self.max_x == 0:
                 self.max_x = x
