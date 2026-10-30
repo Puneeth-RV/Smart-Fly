@@ -11,6 +11,12 @@ Two choices that mattered:
   fixed start a policy can pass by replaying one memorised path: the first 1-1
   fly finished 20/20 from a fixed start and 4/10 from varied ones. Trained with
   varied starts it passed 10/10.
+* Practice starts (`--practice 1-3:0.5`), for a level stuck at one obstacle.
+  Each worker keeps the buttons of its furthest attempt there; that share of
+  attempts replays them and hands over on solid ground 1-4 seconds before the
+  end, so the fly meets the hard part dozens of times a minute instead of once
+  per attempt.
+  The start moves on as the fly gets further. Tests always start at the start.
 * A short horizon (gamma 0.9), so credit lands on the jump that cleared the
   pipe rather than being smeared over the next ten seconds.
 
@@ -42,6 +48,10 @@ STUCK_LIMIT = 300
 # ended there, stuck against its wall.
 DEAD_ENDS = {"1-2": 2720}
 DEAD_END_PENALTY = 25.0  # what dying costs in the game
+# Practice starts hand over this many frames before the end of the furthest attempt.
+HANDOVER = (60, 240)
+ON_GROUND = 0x1D  # RAM: Mario's float state, 0 when standing
+WARM_UP = 15  # decisions the fly watches before a practice start
 
 
 def parse_levels(spec: str) -> list[tuple[str, float]]:
@@ -54,7 +64,7 @@ def parse_levels(spec: str) -> list[tuple[str, float]]:
 
 
 # ------------------------------------------------------------------ workers
-def _worker(conn, levels, steps, frame_skip, stack, vision, start_jitter, seed):
+def _worker(conn, levels, steps, frame_skip, stack, vision, start_jitter, practice, seed):
     from smartfly.fly import Fly
     from smartfly.game import Mario
     from smartfly.policy import Memory
@@ -67,6 +77,7 @@ def _worker(conn, levels, steps, frame_skip, stack, vision, start_jitter, seed):
     weights /= weights.sum()
     games: dict[str, Mario] = {}
     ep: dict = {}
+    furthest: dict[str, tuple[int, list[int]]] = {}  # level -> (distance, buttons per frame)
 
     def look(retina: np.ndarray) -> np.ndarray:
         if vision == "blind":
@@ -80,14 +91,49 @@ def _worker(conn, levels, steps, frame_skip, stack, vision, start_jitter, seed):
         if level not in games:
             games[level] = Mario(level)
         game = games[level]
-        retina = game.reset()
-        for _ in range(int(rng.integers(0, start_jitter + 1))):
-            retina, _, done, _ = game.step(0)
-            if done:
-                retina = game.reset()
+        retina, buttons, obs = game.reset(), [], None
         fly.reset()
-        ep.update(game=game, level=level, best=0, since=0, ret=0.0, steps=0)
-        return memory.reset(look(retina))
+        route = furthest.get(level, (0, []))[1]
+        if route and rng.random() < practice.get(level, 0.0):
+            cut = max(0, len(route) - int(rng.integers(*HANDOVER)))
+            warm = cut - WARM_UP * frame_skip
+            # Replay up to the cut, then on until Mario stands on something. The fly
+            # watches the last second, so it does not wake up blank at full speed.
+            for i, b in enumerate(route):
+                if i >= cut and game.ram[ON_GROUND] == 0:
+                    break
+                if i >= warm and (i - warm) % frame_skip == 0:
+                    seen = look(retina)
+                    obs = memory.reset(seen) if obs is None else memory.push(seen, buttons[-1])
+                retina, _, done, _ = game.step(b)
+                buttons.append(b)
+                if done:
+                    break
+            if game.done:
+                retina, buttons, obs = game.reset(), [], None
+                fly.reset()
+        practised = obs is not None
+        if not practised:
+            for _ in range(int(rng.integers(0, start_jitter + 1))):
+                retina, _, done, _ = game.step(0)
+                buttons.append(0)
+                if done:
+                    retina, buttons = game.reset(), []
+            obs = memory.reset(look(retina))
+        else:
+            obs = memory.push(look(retina), buttons[-1])
+        ep.update(
+            game=game,
+            level=level,
+            best=0,
+            best_at=0,
+            since=0,
+            ret=0.0,
+            steps=0,
+            buttons=buttons,
+            practice=practised,
+        )
+        return obs
 
     conn.send(new_attempt())
     while True:
@@ -98,6 +144,7 @@ def _worker(conn, levels, steps, frame_skip, stack, vision, start_jitter, seed):
         reward, done, flag = 0.0, False, False
         for _ in range(frame_skip):
             retina, r, d, info = game.step(int(action))
+            ep["buttons"].append(int(action))
             reward += float(np.clip(r, -25, 15))
             flag |= bool(info.get("flag_get"))
             if d:
@@ -111,7 +158,7 @@ def _worker(conn, levels, steps, frame_skip, stack, vision, start_jitter, seed):
         ep["steps"] += 1
         ep["ret"] += reward
         if game.max_x > ep["best"]:
-            ep["best"], ep["since"] = game.max_x, 0
+            ep["best"], ep["since"], ep["best_at"] = game.max_x, 0, len(ep["buttons"])
         else:
             ep["since"] += 1
         done |= ep["since"] >= STUCK_LIMIT
@@ -123,7 +170,11 @@ def _worker(conn, levels, steps, frame_skip, stack, vision, start_jitter, seed):
                 "flag": flag,
                 "ret": ep["ret"],
                 "steps": ep["steps"],
+                "practice": ep["practice"],
             }
+            lv = ep["level"]
+            if lv in practice and not flag and game.max_x > furthest.get(lv, (0, []))[0]:
+                furthest[lv] = (int(game.max_x), ep["buttons"][: ep["best_at"]])
             obs = new_attempt()
         else:
             obs = memory.push(look(retina), action)
@@ -135,7 +186,7 @@ def _worker(conn, levels, steps, frame_skip, stack, vision, start_jitter, seed):
 class ParallelGames:
     """N worker processes, stepped together."""
 
-    def __init__(self, n, levels, steps, frame_skip, stack, vision, start_jitter):
+    def __init__(self, n, levels, steps, frame_skip, stack, vision, start_jitter, practice=None):
         ctx = mp.get_context("spawn")
         self.conns, self.procs = [], []
         base = int(time.time()) % 10000
@@ -144,7 +195,17 @@ class ParallelGames:
             p = ctx.Process(
                 target=_worker,
                 daemon=True,
-                args=(b, levels, steps, frame_skip, stack, vision, start_jitter, 1000 + i + base),
+                args=(
+                    b,
+                    levels,
+                    steps,
+                    frame_skip,
+                    stack,
+                    vision,
+                    start_jitter,
+                    practice or {},
+                    1000 + i + base,
+                ),
             )
             p.start()
             self.conns.append(a)
@@ -182,7 +243,10 @@ def train(args: argparse.Namespace) -> None:
     out.mkdir(parents=True, exist_ok=True)
     ckpt = out / "fly.pt"
     levels = parse_levels(args.levels)
-    print(f"levels {levels}  vision {args.vision}  envs {args.envs}", flush=True)
+    print(
+        f"levels {levels}  vision {args.vision}  envs {args.envs}  practice {args.practice}",
+        flush=True,
+    )
     games = ParallelGames(
         args.envs,
         levels,
@@ -191,6 +255,7 @@ def train(args: argparse.Namespace) -> None:
         args.stack,
         args.vision,
         args.start_jitter,
+        dict(parse_levels(args.practice)) if args.practice else {},
     )
     d = games.obs.shape[1]
     net = ActorCritic(d)
@@ -286,6 +351,7 @@ def train(args: argparse.Namespace) -> None:
                 f"episodes {len(episodes):5d}  last-40 mean x {np.mean(xs):6.0f}  "
                 f"max {max(xs):5d}  flags {sum(e['flag'] for e in recent)}/{len(recent)}  "
                 f"total flags {sum(e['flag'] for e in episodes)}  ent {ent_coef:.4f}  "
+                f"practice starts {sum(e.get('practice', False) for e in recent)}/{len(recent)}  "
                 f"({(time.time() - t0) / 60:.0f} min)",
                 flush=True,
             )
@@ -329,6 +395,10 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--brain-steps", type=int, default=6, help="simulation steps per decision")
     ap.add_argument("--frame-skip", type=int, default=4, help="frames each button is held")
     ap.add_argument("--start-jitter", type=int, default=30, help="idle frames before control, 0..N")
+    ap.add_argument(
+        "--practice",
+        help="share of attempts that start near the furthest point reached: 1-3:0.5",
+    )
     ap.add_argument("--vision", default="normal", choices=["normal", "blind", "scrambled"])
     return ap
 
