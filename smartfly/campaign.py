@@ -10,6 +10,8 @@ Loop until every level is passed:
    Budget spent (25M frames) and still flat -> set it aside, revisit later.
    Budget spent but getting close (a recent test at 3/10+, or distance up
    15% across the last three) -> another 7.5M frames, up to 50M.
+4. A level set aside comes back with practice starts: half its attempts begin a
+   few seconds before the furthest point reached (see `smartfly.train`).
 
 All state lives in runs/campaign/state.json and the fly in runs/campaign/fly.pt,
 so it can be stopped at any point and resumes where it was. The fly that passed
@@ -35,6 +37,7 @@ from smartfly.paths import CAMPAIGN, MODELS
 STATE = CAMPAIGN / "state.json"
 FLY = CAMPAIGN / "fly.pt"
 LOG = CAMPAIGN / "train.log"
+PRACTICE = 0.5  # share of attempts on a revisited level that start near where it failed
 
 
 def load_state(seed_from: str | None) -> dict:
@@ -99,6 +102,8 @@ def train_chunk(st: dict, chunk: float) -> None:
         "--ent-end",
         "0.007",
     ]
+    if st["current"] in st["parked"]:  # a revisit: start some attempts near where it failed
+        cmd += ["--practice", f"{st['current']}:{PRACTICE}"]
     if FLY.exists():
         cmd.append("--resume")
     with open(LOG, "a") as log:

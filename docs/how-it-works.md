@@ -128,6 +128,13 @@ divided by 10, plus 5 for the flag.
   have. It paid more distance than the real exit, so the policy kept choosing it.
   Passing that point without going through a pipe now ends the attempt and costs
   what dying does.
+- **Practice starts on a level set aside.** 1-3 stalled at one jump: from a low
+  treetop onto a tall one, which works only from a take-off spot about 12 pixels
+  wide. Starting from the beginning, the fly met it once per attempt and never
+  cleared it in 25M frames. When the campaign returns to such a level, half its
+  attempts replay the buttons of the furthest attempt so far and hand over on
+  solid ground 1-4 seconds before where it ended, after letting the fly watch
+  the last second. Tests are unchanged: always from the start of the level.
 
 ## The campaign
 
