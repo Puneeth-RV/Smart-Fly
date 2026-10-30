@@ -133,8 +133,10 @@ divided by 10, plus 5 for the flag.
   wide. Starting from the beginning, the fly met it once per attempt and never
   cleared it in 25M frames. When the campaign returns to such a level, half its
   attempts replay the buttons of the furthest attempt so far and hand over on
-  solid ground 1-4 seconds before where it ended, after letting the fly watch
-  the last second. Tests are unchanged: always from the start of the level.
+  solid ground at a random point along it, after letting the fly watch the last
+  second. Handing over only near the end was tried first: when a lucky attempt
+  cleared the jump, practice moved past it and the jump was never learned.
+  Tests are unchanged: always from the start of the level.
 
 ## The campaign
 

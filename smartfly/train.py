@@ -12,11 +12,12 @@ Two choices that mattered:
   fly finished 20/20 from a fixed start and 4/10 from varied ones. Trained with
   varied starts it passed 10/10.
 * Practice starts (`--practice 1-3:0.5`), for a level stuck at one obstacle.
-  Each worker keeps the buttons of its furthest attempt there; that share of
-  attempts replays them and hands over on solid ground 1-4 seconds before the
-  end, so the fly meets the hard part dozens of times a minute instead of once
-  per attempt.
-  The start moves on as the fly gets further. Tests always start at the start.
+  The buttons of the furthest attempt there are kept (in OUT/routes, so they
+  outlive the run); that share of attempts replays them and hands over on solid
+  ground at a random point along the way, so the fly meets each hard part far
+  more often than once per attempt. Handing over only near the end was tried
+  first: once a lucky attempt cleared the 1-3 jump, practice moved past it and
+  the jump itself was never learned. Tests always start at the start.
 * A short horizon (gamma 0.9), so credit lands on the jump that cleared the
   pipe rather than being smeared over the next ten seconds.
 
@@ -48,8 +49,8 @@ STUCK_LIMIT = 300
 # ended there, stuck against its wall.
 DEAD_ENDS = {"1-2": 2720}
 DEAD_END_PENALTY = 25.0  # what dying costs in the game
-# Practice starts hand over this many frames before the end of the furthest attempt.
-HANDOVER = (60, 240)
+# Practice starts hand over at least this many frames before the furthest attempt ends.
+HANDOVER_MARGIN = 60
 ON_GROUND = 0x1D  # RAM: Mario's float state, 0 when standing
 WARM_UP = 15  # decisions the fly watches before a practice start
 
@@ -64,7 +65,7 @@ def parse_levels(spec: str) -> list[tuple[str, float]]:
 
 
 # ------------------------------------------------------------------ workers
-def _worker(conn, levels, steps, frame_skip, stack, vision, start_jitter, practice, seed):
+def _worker(conn, levels, steps, frame_skip, stack, vision, start_jitter, practice, routes, seed):
     from smartfly.fly import Fly
     from smartfly.game import Mario
     from smartfly.policy import Memory
@@ -77,7 +78,22 @@ def _worker(conn, levels, steps, frame_skip, stack, vision, start_jitter, practi
     weights /= weights.sum()
     games: dict[str, Mario] = {}
     ep: dict = {}
-    furthest: dict[str, tuple[int, list[int]]] = {}  # level -> (distance, buttons per frame)
+    routes = Path(routes)
+
+    def furthest(level: str) -> tuple[int, list[int]]:
+        """The furthest attempt on `level` so far, shared by all workers and runs."""
+        f = routes / f"{level}.json"
+        if not f.exists():
+            return 0, []
+        r = json.loads(f.read_text())
+        return r["x"], r["buttons"]
+
+    def keep(level: str, x: int, buttons: list[int]) -> None:
+        if x > furthest(level)[0]:
+            routes.mkdir(parents=True, exist_ok=True)
+            tmp = routes / f"{level}.{seed}.tmp"
+            tmp.write_text(json.dumps({"x": x, "buttons": buttons}))
+            tmp.replace(routes / f"{level}.json")
 
     def look(retina: np.ndarray) -> np.ndarray:
         if vision == "blind":
@@ -93,9 +109,9 @@ def _worker(conn, levels, steps, frame_skip, stack, vision, start_jitter, practi
         game = games[level]
         retina, buttons, obs = game.reset(), [], None
         fly.reset()
-        route = furthest.get(level, (0, []))[1]
-        if route and rng.random() < practice.get(level, 0.0):
-            cut = max(0, len(route) - int(rng.integers(*HANDOVER)))
+        route = furthest(level)[1] if level in practice else []
+        if len(route) > HANDOVER_MARGIN and rng.random() < practice[level]:
+            cut = int(rng.integers(0, len(route) - HANDOVER_MARGIN))
             warm = cut - WARM_UP * frame_skip
             # Replay up to the cut, then on until Mario stands on something. The fly
             # watches the last second, so it does not wake up blank at full speed.
@@ -173,8 +189,8 @@ def _worker(conn, levels, steps, frame_skip, stack, vision, start_jitter, practi
                 "practice": ep["practice"],
             }
             lv = ep["level"]
-            if lv in practice and not flag and game.max_x > furthest.get(lv, (0, []))[0]:
-                furthest[lv] = (int(game.max_x), ep["buttons"][: ep["best_at"]])
+            if lv in practice and not flag:
+                keep(lv, int(game.max_x), ep["buttons"][: ep["best_at"]])
             obs = new_attempt()
         else:
             obs = memory.push(look(retina), action)
@@ -186,7 +202,9 @@ def _worker(conn, levels, steps, frame_skip, stack, vision, start_jitter, practi
 class ParallelGames:
     """N worker processes, stepped together."""
 
-    def __init__(self, n, levels, steps, frame_skip, stack, vision, start_jitter, practice=None):
+    def __init__(
+        self, n, levels, steps, frame_skip, stack, vision, start_jitter, practice=None, routes=""
+    ):
         ctx = mp.get_context("spawn")
         self.conns, self.procs = [], []
         base = int(time.time()) % 10000
@@ -204,6 +222,7 @@ class ParallelGames:
                     vision,
                     start_jitter,
                     practice or {},
+                    str(routes),
                     1000 + i + base,
                 ),
             )
@@ -256,6 +275,7 @@ def train(args: argparse.Namespace) -> None:
         args.vision,
         args.start_jitter,
         dict(parse_levels(args.practice)) if args.practice else {},
+        out / "routes",
     )
     d = games.obs.shape[1]
     net = ActorCritic(d)
@@ -397,7 +417,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--start-jitter", type=int, default=30, help="idle frames before control, 0..N")
     ap.add_argument(
         "--practice",
-        help="share of attempts that start near the furthest point reached: 1-3:0.5",
+        help="share of attempts that start along the furthest route so far: 1-3:0.5",
     )
     ap.add_argument("--vision", default="normal", choices=["normal", "blind", "scrambled"])
     return ap
