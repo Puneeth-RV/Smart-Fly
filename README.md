@@ -66,11 +66,9 @@ fly's neurons alongside.
 
 ## How it works
 
-```
-game screen ──▶ retina ──▶ 3,354 photoreceptors ──▶ optic lobe ──▶ policy ──▶ button
-                15 × 24     └──────── real connectome wiring ────────┘     trained
-                contrast    graded neurons, 6 steps per decision           with PPO
-```
+<p align="center">
+  <img src="docs/media/pipeline.svg" alt="Pipeline: game screen, 15 x 24 contrast retina, 3,354 photoreceptors and the 92,743-neuron optic lobe on the real connectome wiring (fixed), 1,344 features, a small actor-critic policy trained with PPO, and a button press, 15 times a second." width="900">
+</p>
 
 1. **Retina.** Each frame becomes a 15 × 24 grid of local contrast, which marks
    edges such as pipes, gaps and enemies.
