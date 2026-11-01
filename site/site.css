@@ -42,6 +42,7 @@
 /* Base ------------------------------------------------------------------ */
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+html.replay .only-live, html:not(.replay) .only-replay { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
@@ -182,6 +183,10 @@ h1 em { font-style: italic; }
 }
 .picker button:hover:not(:disabled) { border-color: var(--ink); }
 .picker button:disabled { color: var(--ink-3); border-style: dashed; cursor: default; background: none; }
+.conditions { display: inline-flex; margin-top: 14px; border: 1px solid var(--rule); border-radius: 7px; padding: 2px; }
+.conditions button { background: none; border: 0; cursor: pointer; font: inherit; font-size: 13px; padding: 5px 11px; border-radius: 5px; color: var(--ink-2); }
+.conditions button:hover { color: var(--ink); }
+.conditions button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 .picker button.playing { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .runs, .tests { list-style: none; margin: 0; padding: 0; font-size: 13.5px; }
 .runs li, .tests li { display: grid; grid-template-columns: 64px 54px 1fr auto; gap: 14px; padding: 8px 0; border-bottom: 1px solid var(--rule); color: var(--ink-2); }
