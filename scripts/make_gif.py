@@ -5,7 +5,7 @@ Right: the retina its photoreceptors receive, their response, and the buttons it
 weighed. Plays the trained fly's top choice from random starts until one attempt
 reaches the end, and records that attempt.
 
-    python scripts/make_gif.py models/fly-campaign.pt --level 1-1 --out docs/media/fly-1-1.gif
+    python scripts/make_gif.py models/fly-campaign.pt --level 1-4 --out docs/media/fly-1-4.gif
 """
 
 from __future__ import annotations
