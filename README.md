@@ -13,20 +13,21 @@
 The eye and optic lobe of a male fruit fly (92,743 neurons and 3.69 million
 synapses, from the MaleCNS v1.0 connectome) are simulated from their real wiring
 and shown the game screen. A small network, trained by reinforcement learning,
-turns what those neurons do into button presses. The fly has mastered Worlds 1-1
-and 1-2, using only its top choice, from varied starts.
+turns what those neurons do into button presses. The fly has mastered Worlds 1-1,
+1-2 and 1-4, using only its top choice, from varied starts, and is working on 1-3.
 
 ## Does it really see?
 
-The same trained fly, ten attempts per condition, top choice only, each attempt
-starting after a random delay:
+Ten attempts per condition, top choice only, each attempt starting after a random
+delay. Each column is the fly saved when the campaign passed that level:
+`models/fly-1-2.pt` for 1-1 and 1-2, `models/fly-campaign.pt` for 1-4.
 
-| | World 1-1 | World 1-2 |
-|---|---|---|
-| **Normal eyes** | **10 / 10 finished** · avg distance 3,161 | **6 / 10 finished** · avg 2,539 |
-| Blind (screen blanked) | 0 / 10 · 313 | 0 / 10 · 688 |
-| Scrambled (same pixels, random positions) | 0 / 10 · 705 | 0 / 10 · 258 |
-| Random buttons | 0 / 10 · 710 | 0 / 10 · 646 |
+| | World 1-1 | World 1-2 | World 1-4 |
+|---|---|---|---|
+| **Normal eyes** | **10 / 10 finished** · avg distance 3,161 | **6 / 10 finished** · avg 2,539 | **5 / 10 finished** · avg 2,244 |
+| Blind (screen blanked) | 0 / 10 · 313 | 0 / 10 · 688 | 0 / 10 · 232 |
+| Scrambled (same pixels, random positions) | 0 / 10 · 705 | 0 / 10 · 258 | 0 / 10 · 428 |
+| Random buttons | 0 / 10 · 710 | 0 / 10 · 646 | 0 / 10 · 353 |
 
 Blind, it walks into the first Goomba. Scrambled, so that it gets the same
 brightness and the same amount of change but no layout, it does no better than
@@ -34,8 +35,30 @@ random buttons. Its skill depends on *where* things are on the screen.
 
 Ten attempts is a small sample. On 1-2 the fly passed its campaign test 9 of 10;
 over 30 fresh attempts it finished 21 (70%). Of the 9 failures, 3 still ran over
-the ceiling into the Warp Zone and 6 died earlier in the level. Measured with `python -m smartfly.evaluate`; raw results
-are in [`results/`](results/).
+the ceiling into the Warp Zone and 6 died earlier in the level. On 1-4 it passed
+its campaign test 8 of 10; over 30 fresh attempts it finished 16 (53%), and all
+14 failures ended at Bowser on the final bridge.
+
+It also forgets. The fly that mastered 1-4 still finishes 1-1 10 of 10, but 1-2
+0 of 10: most attempts now end around distance 945. While it trained on 1-3 and
+1-4, each earlier level got 13-20% of its practice. Measured with
+`python -m smartfly.evaluate`; raw results are in [`results/`](results/).
+
+## Progress
+
+The campaign tests a level every 1.5M frames of training and moves on at 8 of
+10. So far (133M frames in all, on one MacBook Air):
+
+| Level | Status | Training on it |
+|---|---|---|
+| 1-1 | passed 10/10 | 1.5M frames, after 10M on 1-1 alone |
+| 1-2 | passed 9/10 | 50.9M, unstuck by making the Warp Zone a dead end |
+| 1-3 | in progress, 0/10 | 42.1M; one jump stops it, see below |
+| 1-4 | passed 8/10 | 28.6M, mostly learning to get past Bowser |
+
+Next: 1-3 with practice starts, then World 2; keeping earlier levels while
+learning new ones; and a public page that replays each passed level with the
+fly's neurons alongside.
 
 ## How it works
 
@@ -57,7 +80,9 @@ game screen ──▶ retina ──▶ 3,354 photoreceptors ──▶ optic lobe
    the only part that learns, by PPO, rewarded for moving right and penalised for
    dying.
 5. **Campaign.** The fly works through the game level by level: train, test 10
-   attempts from random starts, and move on at 8 of 10.
+   attempts from random starts, and move on at 8 of 10. A level it fails is set
+   aside and revisited with practice starts, which begin some attempts part-way
+   along the furthest route so far.
 
 Details in [docs/how-it-works.md](docs/how-it-works.md).
 
@@ -77,7 +102,7 @@ Details in [docs/how-it-works.md](docs/how-it-works.md).
 ## Quick start
 
 Python 3.12. The repository includes the fly's visual system (12.8 MB)
-and two trained flies, so nothing else needs downloading.
+and three trained flies, so nothing else needs downloading.
 
 ```bash
 git clone https://github.com/Puneeth-RV/Smart-Fly.git && cd Smart-Fly
@@ -161,15 +186,21 @@ explained in [docs/journey.md](docs/journey.md):
   failures ended in the Warp Zone, reached over the ceiling: more distance than
   the real exit, but no way out without a Down button. Making that route a dead
   end took it from 0/10 to 9/10 in 7.5M frames.
+- **One jump stopped 1-3.** Every test ended at the same treetop. A search over
+  button sequences showed the jump works only after a brief slow-down before
+  take-off, found by about 2% of random sequences; the fly had learned to run
+  flat out everywhere. Practice starts along the furthest route got it over
+  the jump for the first time after 16M more frames.
 - **The simulated optic lobe is chaotic.** A one-in-ten-million nudge changes the
   fly's choices within a second of play, so exact runs differ between computers;
   results are rates over many varied attempts.
 
 ## Limitations
 
-- It has mastered two levels and is working on the third. One pass through
-  all 32 levels is roughly two weeks of computing, and some (the maze castles and
-  underwater levels) may not pass.
+- It has mastered three of World 1's four levels and is working on 1-3. One
+  pass through all 32 levels is roughly two weeks of computing, and some (the
+  maze castles and underwater levels) may not pass.
+- Learning a new level costs some of the old ones, as 1-2 shows above.
 - The policy learns each level; it does not play unseen ones.
 - Deep in the optic lobe the picture blurs. The wiring is known but synaptic
   strengths are not, and connectome-constrained models of fly vision
