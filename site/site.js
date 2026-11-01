@@ -42,11 +42,7 @@
     var sv = qv || localStorage.getItem("view"); if (sv === "theater") setView("theater");
   } catch (e) {}
 
-  // Replay mode: the page is static (GitHub Pages) and plays recorded runs.
-  var replay = !!document.querySelector('meta[name="smartfly-mode"][content="replay"]');
-  if (replay) root.classList.add("replay");
-
-  window.FlySite = { view: function () { return view; }, setView: setView, replay: replay };
+  window.FlySite = { view: function () { return view; }, setView: setView };
 })();
 
 (function () {
@@ -136,8 +132,8 @@
       badge.textContent = site.view() === "theater" ? "No finished levels to show yet" : "Waiting for training";
       return;
     }
-    badge.textContent = s.badge || (site.view() === "live" ? "Learning " : "Replaying ") + "level " +
-                        s.level + " · attempt " + s.attempt;
+    badge.textContent = (site.view() === "live" ? "Learning " : "Replaying ") + "level " + s.level +
+                        " · attempt " + s.attempt;
     if (!built && s.actions) buildButtons(s.actions);
     (s.probs || []).forEach(function (p, i) {
       var li = $("b-" + i); if (!li) return;
@@ -150,8 +146,7 @@
     $("k-active").textContent = fmt(s.active);
     $("k-ckpt").textContent = s.ckpt_frames ? s.ckpt_frames.toFixed(1) + "M frames of practice" : "—";
     $("where").textContent = "Level " + s.level + " · distance " + fmt(s.x) + " · furthest " + fmt(s.max_x);
-    $("flag").hidden = !(s.show_flag ||
-      (s.last_result && s.last_result.flag && s.x < 120 && s.last_result.level === s.level));
+    $("flag").hidden = !(s.last_result && s.last_result.flag && s.x < 120 && s.last_result.level === s.level);
     drawHeat(s.attention, s.grid || [20, 16]);
     listeners.forEach(function (fn) { try { fn(s); } catch (e) { console.error(e); } });
   }
@@ -173,97 +168,16 @@
   site.onCampaign = function (fn) { campListeners.push(fn); };
   function pollCampaign() {
     fetch("/api/campaign", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (c) {
-      showCampaign(c);
+      $("f-level").textContent = c.current || "—";
+      $("f-mastered").textContent = (c.mastered || []).length + " of " + (c.order || []).length;
+      var t = c.training || [];
+      $("f-frames").textContent = t.length ? t[t.length - 1].frames.toFixed(1) + "M frames" : "—";
+      campListeners.forEach(function (fn) { try { fn(c); } catch (e) { console.error(e); } });
       setTimeout(pollCampaign, 5000);
     }).catch(function () { setTimeout(pollCampaign, 8000); });
   }
-  function showCampaign(c) {
-    $("f-level").textContent = c.current || "—";
-    $("f-mastered").textContent = (c.mastered || []).length + " of " + (c.order || []).length;
-    var t = c.training || [];
-    $("f-frames").textContent = t.length ? t[t.length - 1].frames.toFixed(1) + "M frames" : "—";
-    campListeners.forEach(function (fn) { try { fn(c); } catch (e) { console.error(e); } });
-  }
 
-  // ----------------------------------------------------------- replay
-  // Plays recorded runs (replays/<id>/run.json and one JPEG per decision) through
-  // the same render path the live site uses, at the same fifteen decisions a second.
-  var CONDITION = { normal: "", blind: "blind", scrambled: "scrambled eyes" };
-  var index = null, runs = {}, current = null, timer = null;
-  site.pick = { level: null, condition: "normal" };
-
-  function bytes(b64) {
-    var s = atob(b64), out = new Array(s.length);
-    for (var i = 0; i < s.length; i++) out[i] = s.charCodeAt(i) / 255;
-    return out;
-  }
-  function chosenRun() {
-    var all = index.runs;
-    if (site.view() === "live") return all.filter(function (r) { return r.practice; })[0] || all[0];
-    var lv = site.pick.level || (all.filter(function (r) { return !r.practice; })[0] || {}).level;
-    return all.filter(function (r) {
-      return !r.practice && r.level === lv && r.condition === site.pick.condition;
-    })[0] || all[0];
-  }
-  function load(meta, done) {
-    if (runs[meta.id]) return done(runs[meta.id]);
-    fetch("replays/" + meta.id + "/run.json").then(function (r) { return r.json(); }).then(function (run) {
-      run.frames = run.steps.map(function (_, i) {
-        var im = new Image(); im.src = "replays/" + meta.id + "/" + String(i).padStart(4, "0") + ".jpg"; return im;
-      });
-      runs[meta.id] = run; done(run);
-    });
-  }
-  function describe(run) {
-    var what = run.practice ? "Practising level " + run.level : "Level " + run.level +
-      (CONDITION[run.condition] ? " · " + CONDITION[run.condition] : "");
-    return what + " · recorded " + new Date(run.recorded * 1000).toLocaleDateString([], { day: "numeric", month: "short" });
-  }
-  function play() {
-    clearTimeout(timer);
-    if (!index || !index.runs.length) { $("badge").textContent = "No recordings yet"; return; }
-    var meta = chosenRun(); current = meta.id;
-    $("badge").textContent = "Loading the recording…";
-    load(meta, function (run) {
-      if (current !== meta.id) return;
-      run.practice = meta.practice;
-      var i = 0, trace = [], hold = 0;
-      var history = index.runs.filter(function (r) { return !r.practice; }).map(function (r) {
-        return { t: r.recorded, level: r.level, x: r.x, flag: r.flag, note: CONDITION[r.condition] };
-      });
-      (function tick() {
-        if (current !== meta.id) return;
-        var st = run.steps[i], im = run.frames[i];
-        if (!im.complete) { timer = setTimeout(tick, 30); return; }  // wait for the frame
-        if (hold === 0) {
-          trace.push([st.r, st.v, st.ev]); if (trace.length > 160) trace.shift();
-          img.src = im.src;
-          render({
-            ready: true, level: run.level, attempt: run.attempts, badge: describe(run),
-            x: st.x, max_x: st.max_x, actions: run.actions, action: run.actions[st.a], probs: st.p,
-            value: st.v, "return": st.ret, reward_trace: trace.slice(), ckpt_frames: run.ckpt_frames,
-            eye: bytes(st.eye), eye_shape: run.eye_shape, photo: bytes(st.photo), deep: bytes(st.deep),
-            attention: bytes(st.att), grid: run.grid, raster: st.ras, raster_n: run.raster_n,
-            active: st.act, show_flag: st.ev === "flag", history: history, queue: []
-          });
-        }
-        if (i < run.steps.length - 1) { i++; timer = setTimeout(tick, 1000 / 15); return; }
-        // Hold the last moment, then play it again from the start.
-        if (++hold < 30) { timer = setTimeout(tick, 1000 / 15); return; }
-        i = 0; hold = 0; trace = []; timer = setTimeout(tick, 400);
-      })();
-    });
-  }
-  site.replayAgain = play;
-
-  if (site.replay) {
-    fetch("replays/index.json").then(function (r) { return r.json(); }).then(function (data) {
-      index = data; showCampaign(data.campaign); play();
-    }).catch(function () { $("badge").textContent = "Couldn’t load the recordings."; });
-    window.addEventListener("viewchange", play);
-  } else {
-    pump(); poll(); pollCampaign();
-  }
+  pump(); poll(); pollCampaign();
 })();
 
 (function () {
@@ -435,11 +349,6 @@
   $("picker").addEventListener("click", function (e) {
     var b = e.target.closest("button[data-level]"); if (!b || b.disabled) return;
     var lv = b.dataset.level;
-    if (site.replay) {
-      site.pick.level = lv; playing = lv; if (camp) picker(camp);
-      if (site.view() !== "theater") site.setView("theater"); else site.replayAgain();
-      return;
-    }
     $("queue-note").textContent = "Asking for " + lv + "…";
     fetch("/api/theater", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ level: lv }) })
       .then(function (r) { return r.json(); })
@@ -452,27 +361,16 @@
       .catch(function () { $("queue-note").textContent = "Couldn’t reach the fly. Try again in a moment."; });
   });
 
-  document.querySelectorAll("#conditions button").forEach(function (b) {
-    b.addEventListener("click", function () {
-      site.pick.condition = b.dataset.condition;
-      document.querySelectorAll("#conditions button").forEach(function (o) {
-        o.setAttribute("aria-pressed", String(o === b));
-      });
-      site.replayAgain();
-    });
-  });
-
   site.onState(function (s) {
     if (site.view() !== "theater") return;
     if (s.level !== playing) { playing = s.level; if (camp) picker(camp); }
     var q = s.queue || [];
-    if (!site.replay && q.length && !/position|playing now|Asking/.test($("queue-note").textContent)) {
+    if (q.length && !/position|playing now|Asking/.test($("queue-note").textContent)) {
       $("queue-note").textContent = "Up next: " + q.join(", ");
     }
     $("runs").innerHTML = (s.history || []).slice(0, 12).map(function (r) {
       return '<li><time>' + clock(r.t) + '</time><span class="lv">' + esc(r.level) + '</span><span>distance ' +
-        Number(r.x).toLocaleString() + (r.note ? " · " + esc(r.note) : "") +
-        '</span><span class="' + (r.flag ? "ok" : "no") + '">' +
+        Number(r.x).toLocaleString() + '</span><span class="' + (r.flag ? "ok" : "no") + '">' +
         (r.flag ? "Reached the flag" : "Didn’t finish") + "</span></li>";
     }).join("") || '<li><span></span><span></span><span class="no">Runs will appear here.</span><span></span></li>';
   });

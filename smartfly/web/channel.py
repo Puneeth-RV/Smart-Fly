@@ -26,11 +26,12 @@ import numpy as np
 from PIL import Image
 
 from smartfly.campaign import STATE
-from smartfly.game import Mario
+from smartfly.game import ACTIONS, Mario
 from smartfly.paths import MODELS
-from smartfly.web.episode import play_attempt, raster_neurons
+from smartfly.train import FLAG_BONUS, STUCK_LIMIT
 
 DECISIONS_PER_SECOND = 15.0
+RASTER_NEURONS = 480
 
 
 def campaign_state() -> dict:
@@ -41,6 +42,10 @@ def campaign_state() -> dict:
         except (OSError, ValueError):
             continue
     return {}
+
+
+def _r3(values) -> list[float]:
+    return [round(float(v), 3) for v in values]
 
 
 class Channel:
@@ -101,7 +106,9 @@ class Channel:
             time.sleep(5)
         player = Player(self.checkpoint)
         fly = player.fly
-        raster = raster_neurons(player)
+        lay = fly.layout
+        order = np.argsort(fly.map_cell, kind="stable")
+        raster = fly.map_neurons[order[np.linspace(0, order.size - 1, RASTER_NEURONS).astype(int)]]
         loaded = self.checkpoint.stat().st_mtime
         games: dict[str, Mario] = {}
         rng = np.random.default_rng()
@@ -122,29 +129,78 @@ class Channel:
             if level not in games:
                 games[level] = Mario(level)
             game = games[level]
+            retina = game.reset()
+            for _ in range(int(rng.integers(0, 31))):
+                retina, _, done, _ = game.step(0)
+                if done:
+                    retina = game.reset()
+            player.reset()
             attempts += 1
+            flag, best, since, total, decisions = False, 0, 0, 0.0, 0
             rewards: deque = deque(maxlen=160)
-            flag, t0 = False, time.time()
-            for step in play_attempt(player, game, rng, raster):
-                flag = step.flag
-                s = step.state
+            info: dict = {}
+            while not game.done and since < STUCK_LIMIT and decisions < 1500:
+                t0 = time.time()
+                seen = retina.copy()
+                d = player.decide(retina, attention=True)
+                fired = np.flatnonzero(fly.brain.active[raster]).tolist()
+                reward, died = 0.0, False
+                for _ in range(player.frame_skip):
+                    retina, r, done, info = game.step(d.action)
+                    reward += float(np.clip(r, -25, 15))
+                    flag |= bool(info.get("flag_get"))
+                    if done:
+                        died = not info.get("flag_get")
+                        break
+                if flag:
+                    reward += FLAG_BONUS
+                total += reward / 10
+                decisions += 1
+                if game.max_x > best:
+                    best, since = game.max_x, 0
+                else:
+                    since += 1
                 rewards.append(
-                    [s["reward"], s["value"], "flag" if flag else ("death" if step.died else "")]
+                    [
+                        round(reward / 10, 2),
+                        round(d.value, 2),
+                        "flag" if flag else ("death" if died else ""),
+                    ]
                 )
                 buf = io.BytesIO()
-                Image.fromarray(step.frame.astype(np.uint8), "RGB").save(buf, "JPEG", quality=80)
+                Image.fromarray(game.frame.astype(np.uint8), "RGB").save(buf, "JPEG", quality=80)
+                f = d.features
                 with self.lock:
                     self.jpeg = buf.getvalue()
                     self.state.update(
-                        s,
-                        idle=False,
-                        level=level,
-                        attempt=attempts,
-                        reward_trace=list(rewards),
-                        t=time.time(),
+                        {
+                            "idle": False,
+                            "level": level,
+                            "attempt": attempts,
+                            "x": int(info.get("x_pos", 0)),
+                            "max_x": int(game.max_x),
+                            "action": ACTIONS[d.action],
+                            "actions": ACTIONS,
+                            "probs": _r3(d.probs),
+                            "value": round(d.value, 2),
+                            "return": round(total, 2),
+                            "reward_trace": list(rewards),
+                            "ckpt_frames": round(player.frames_trained / 1e6, 2),
+                            "eye": _r3(seen.ravel()),
+                            "eye_shape": list(seen.shape),
+                            "photo": _r3(f[lay["eye"]]),
+                            "deep": _r3(f[lay["deep"]]),
+                            "motion": _r3(f[lay["motion"]]),
+                            "first": _r3(f[lay["first"]]),
+                            "grid": [20, 16],
+                            "attention": _r3(d.attention),
+                            "raster": fired,
+                            "raster_n": RASTER_NEURONS,
+                            "active": int(fly.brain.active.sum()),
+                            "t": time.time(),
+                        }
                     )
                 time.sleep(max(0.0, 1.0 / DECISIONS_PER_SECOND - (time.time() - t0)))
-                t0 = time.time()
             with self.lock:
                 result = {
                     "level": level,
