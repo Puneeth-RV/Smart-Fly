@@ -48,6 +48,19 @@ def training_progress(log: Path, limit: int = 400) -> list[dict]:
     return rows[-limit:]
 
 
+def campaign_summary() -> dict:
+    """Levels, tests and training progress, as the page's campaign view needs them."""
+    st = campaign_state()
+    return {
+        "order": st.get("order", []),
+        "current": st.get("current"),
+        "mastered": st.get("mastered", []),
+        "parked": st.get("parked", []),
+        "tests": st.get("tests", [])[-40:],
+        "training": training_progress(LOG),
+    }
+
+
 class Handler(SimpleHTTPRequestHandler):
     channels: dict[str, Channel] = {}
     last_request: dict[str, float] = {}
@@ -95,17 +108,7 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._send(b"", "text/plain", 503)
             return self._send(ch.jpeg, "image/jpeg")
         if path == "/api/campaign":
-            st = campaign_state()
-            return self._json(
-                {
-                    "order": st.get("order", []),
-                    "current": st.get("current"),
-                    "mastered": st.get("mastered", []),
-                    "parked": st.get("parked", []),
-                    "tests": st.get("tests", [])[-40:],
-                    "training": training_progress(LOG),
-                }
-            )
+            return self._json(campaign_summary())
         if path in ("", "/"):
             self.path = "/index.html"
         return super().do_GET()
