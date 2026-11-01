@@ -1,0 +1,128 @@
+{
+ "checkpoint": "models/fly-campaign.pt",
+ "level": "1-4",
+ "results": {
+  "normal": [
+   {
+    "x": 2268,
+    "flag": true
+   },
+   {
+    "x": 2229,
+    "flag": false
+   },
+   {
+    "x": 2261,
+    "flag": true
+   },
+   {
+    "x": 2270,
+    "flag": true
+   },
+   {
+    "x": 2229,
+    "flag": false
+   },
+   {
+    "x": 2259,
+    "flag": true
+   },
+   {
+    "x": 2246,
+    "flag": true
+   },
+   {
+    "x": 2227,
+    "flag": false
+   },
+   {
+    "x": 2225,
+    "flag": false
+   },
+   {
+    "x": 2224,
+    "flag": false
+   },
+   {
+    "x": 2229,
+    "flag": false
+   },
+   {
+    "x": 2267,
+    "flag": true
+   },
+   {
+    "x": 2257,
+    "flag": true
+   },
+   {
+    "x": 2232,
+    "flag": false
+   },
+   {
+    "x": 2257,
+    "flag": true
+   },
+   {
+    "x": 2259,
+    "flag": true
+   },
+   {
+    "x": 2229,
+    "flag": false
+   },
+   {
+    "x": 2259,
+    "flag": true
+   },
+   {
+    "x": 2229,
+    "flag": false
+   },
+   {
+    "x": 2246,
+    "flag": true
+   },
+   {
+    "x": 2259,
+    "flag": true
+   },
+   {
+    "x": 2224,
+    "flag": false
+   },
+   {
+    "x": 2229,
+    "flag": false
+   },
+   {
+    "x": 2229,
+    "flag": false
+   },
+   {
+    "x": 2260,
+    "flag": true
+   },
+   {
+    "x": 2245,
+    "flag": true
+   },
+   {
+    "x": 2222,
+    "flag": false
+   },
+   {
+    "x": 2222,
+    "flag": false
+   },
+   {
+    "x": 2257,
+    "flag": true
+   },
+   {
+    "x": 2267,
+    "flag": true
+   }
+  ]
+ }
+}

@@ -1,5 +1,5 @@
 {
- "checkpoint": "models/fly-campaign.pt",
+ "checkpoint": "models/fly-1-2.pt",
  "level": "1-2",
  "results": {
   "normal": [

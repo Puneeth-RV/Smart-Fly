@@ -4,81 +4,81 @@
  "results": {
   "normal": [
    {
-    "x": 1660,
+    "x": 943,
     "flag": false
    },
    {
-    "x": 3161,
-    "flag": true
-   },
-   {
-    "x": 3161,
-    "flag": true
-   },
-   {
-    "x": 1660,
+    "x": 946,
     "flag": false
    },
    {
-    "x": 3161,
-    "flag": true
-   },
-   {
-    "x": 3161,
-    "flag": true
-   },
-   {
-    "x": 964,
+    "x": 1177,
     "flag": false
    },
    {
-    "x": 2140,
+    "x": 945,
     "flag": false
    },
    {
-    "x": 3161,
-    "flag": true
+    "x": 946,
+    "flag": false
    },
    {
-    "x": 3161,
-    "flag": true
+    "x": 970,
+    "flag": false
+   },
+   {
+    "x": 884,
+    "flag": false
+   },
+   {
+    "x": 903,
+    "flag": false
+   },
+   {
+    "x": 1746,
+    "flag": false
+   },
+   {
+    "x": 2552,
+    "flag": false
    }
   ],
   "blind": [
    {
-    "x": 905,
+    "x": 670,
     "flag": false
    },
    {
-    "x": 905,
+    "x": 670,
     "flag": false
    },
    {
-    "x": 905,
+    "x": 670,
     "flag": false
    },
    {
-    "x": 905,
+    "x": 670,
     "flag": false
    },
    {
-    "x": 905,
+    "x": 670,
     "flag": false
    },
    {
-    "x": 905,
+    "x": 670,
     "flag": false
    },
    {
-    "x": 905,
+    "x": 670,
     "flag": false
    },
    {
-    "x": 180,
+    "x": 181,
     "flag": false
    },
    {
-    "x": 191,
+    "x": 196,
     "flag": false
    },
    {
@@ -88,43 +88,43 @@
   ],
   "scrambled": [
    {
-    "x": 171,
+    "x": 852,
     "flag": false
    },
    {
-    "x": 170,
+    "x": 153,
     "flag": false
    },
    {
-    "x": 673,
+    "x": 672,
     "flag": false
    },
    {
-    "x": 182,
+    "x": 658,
     "flag": false
    },
    {
-    "x": 184,
+    "x": 872,
     "flag": false
    },
    {
-    "x": 177,
+    "x": 657,
     "flag": false
    },
    {
-    "x": 184,
+    "x": 174,
     "flag": false
    },
    {
-    "x": 173,
+    "x": 922,
     "flag": false
    },
    {
-    "x": 484,
+    "x": 851,
     "flag": false
    },
    {
-    "x": 183,
+    "x": 851,
     "flag": false
    }
   ],
