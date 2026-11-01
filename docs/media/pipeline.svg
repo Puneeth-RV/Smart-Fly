@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 310" width="1100" height="310" role="img" aria-label="Smart-Fly pipeline: game screen, retina, photoreceptors and optic lobe on the real connectome wiring (fixed), features, policy trained with PPO, button, and back to the next frame at 15 decisions per second">
+  <style>
+    .bg { fill: #ffffff; }
+    .group-box { fill: #f6f8fa; stroke: #d0d7de; stroke-width: 1; stroke-dasharray: 4 3; }
+    .stage-box { fill: #ffffff; stroke: #d0d7de; stroke-width: 1; }
+    text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; text-anchor: middle; }
+    .title { font-size: 14px; font-weight: 600; fill: #1f2328; }
+    .sub { font-size: 11.5px; fill: #59636e; }
+    .group-label { font-size: 12px; font-weight: 500; fill: #59636e; }
+    .trained-label { font-size: 12px; font-weight: 600; fill: #0969da; }
+    .trained-bracket, .arrow { fill: none; stroke: #0969da; stroke-width: 1.25; }
+    .arrow-head { fill: #0969da; }
+    .feedback-label { font-size: 12px; fill: #59636e; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0d1117; }
+      .group-box { fill: #121820; stroke: #30363d; }
+      .stage-box { fill: #161b22; stroke: #30363d; }
+      .title { fill: #e6edf3; }
+      .sub, .group-label, .feedback-label { fill: #8b949e; }
+      .trained-bracket, .arrow { stroke: #2f81f7; }
+      .trained-label, .arrow-head { fill: #2f81f7; }
+    }
+  </style>
+  <defs>
+    <marker id="arrowhead" viewBox="0 0 8 8" refX="6.5" refY="4" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.2 L 6.8 4 L 0 6.8 Z" class="arrow-head"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1100" height="310" rx="6" class="bg"/>
+
+  <rect x="266" y="44" width="356" height="174" rx="10" class="group-box"/>
+  <text x="444" y="66" class="group-label">Real connectome wiring (fixed)</text>
+
+  <text x="862" y="66" class="trained-label">Trained (PPO)</text>
+  <path d="M 806 78 L 806 73 L 918 73 L 918 78" class="trained-bracket"/>
+
+  <rect x="16" y="88" width="112" height="116" rx="8" class="stage-box"/>
+  <text x="72" y="128" class="title">Game screen</text>
+  <text x="72" y="152" class="sub">Super Mario Bros</text>
+  <text x="72" y="168" class="sub">(NES emulator)</text>
+
+  <rect x="148" y="88" width="106" height="116" rx="8" class="stage-box"/>
+  <text x="201" y="128" class="title">Retina</text>
+  <text x="201" y="152" class="sub">15 × 24 grid of</text>
+  <text x="201" y="168" class="sub">local contrast</text>
+
+  <rect x="278" y="88" width="138" height="116" rx="8" class="stage-box"/>
+  <text x="347" y="118" class="title">Photoreceptors</text>
+  <text x="347" y="142" class="sub">3,354 R1–R6 cells</text>
+  <text x="347" y="164" class="sub">placed using the</text>
+  <text x="347" y="180" class="sub">eye's real coordinates</text>
+
+  <rect x="436" y="88" width="174" height="116" rx="8" class="stage-box"/>
+  <text x="523" y="114" class="title">Optic lobe</text>
+  <text x="523" y="136" class="sub">92,743 neurons</text>
+  <text x="523" y="151" class="sub">3.69M synapses</text>
+  <text x="523" y="172" class="sub">graded neurons, signs</text>
+  <text x="523" y="187" class="sub">from neurotransmitters</text>
+
+  <rect x="634" y="88" width="136" height="116" rx="8" class="stage-box"/>
+  <text x="702" y="118" class="title">Features</text>
+  <text x="702" y="142" class="sub">1,344 values</text>
+  <text x="702" y="164" class="sub">activity averaged onto</text>
+  <text x="702" y="180" class="sub">visual-field maps</text>
+
+  <rect x="790" y="88" width="144" height="116" rx="8" class="stage-box"/>
+  <text x="862" y="128" class="title">Policy</text>
+  <text x="862" y="152" class="sub">small actor-critic</text>
+  <text x="862" y="168" class="sub">with short memory</text>
+
+  <rect x="954" y="88" width="130" height="116" rx="8" class="stage-box"/>
+  <text x="1019" y="114" class="title">Button</text>
+  <text x="1019" y="136" class="sub">nothing · right</text>
+  <text x="1019" y="152" class="sub">right + jump</text>
+  <text x="1019" y="168" class="sub">right + run · jump</text>
+  <text x="1019" y="184" class="sub">running jump · left</text>
+
+  <line x1="128" y1="146" x2="146.5" y2="146" class="arrow" marker-end="url(#arrowhead)"/>
+  <line x1="254" y1="146" x2="276.5" y2="146" class="arrow" marker-end="url(#arrowhead)"/>
+  <line x1="416" y1="146" x2="434.5" y2="146" class="arrow" marker-end="url(#arrowhead)"/>
+  <line x1="610" y1="146" x2="632.5" y2="146" class="arrow" marker-end="url(#arrowhead)"/>
+  <line x1="770" y1="146" x2="788.5" y2="146" class="arrow" marker-end="url(#arrowhead)"/>
+  <line x1="934" y1="146" x2="952.5" y2="146" class="arrow" marker-end="url(#arrowhead)"/>
+
+  <path d="M 1019 204 L 1019 250 Q 1019 258 1011 258 L 80 258 Q 72 258 72 250 L 72 205.5" class="arrow" marker-end="url(#arrowhead)"/>
+  <text x="545.5" y="280" class="feedback-label">next frame, 15 decisions / second</text>
+</svg>
