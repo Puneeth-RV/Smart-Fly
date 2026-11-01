@@ -1,127 +1,127 @@
 {
  "checkpoint": "models/fly-campaign.pt",
- "level": "1-2",
+ "level": "1-4",
  "results": {
   "normal": [
    {
-    "x": 1660,
+    "x": 2268,
+    "flag": true
+   },
+   {
+    "x": 2229,
     "flag": false
    },
    {
-    "x": 3161,
+    "x": 2261,
     "flag": true
    },
    {
-    "x": 3161,
+    "x": 2270,
     "flag": true
    },
    {
-    "x": 1660,
+    "x": 2229,
     "flag": false
    },
    {
-    "x": 3161,
+    "x": 2259,
     "flag": true
    },
    {
-    "x": 3161,
+    "x": 2246,
     "flag": true
    },
    {
-    "x": 964,
+    "x": 2227,
     "flag": false
    },
    {
-    "x": 2140,
+    "x": 2225,
     "flag": false
    },
    {
-    "x": 3161,
-    "flag": true
-   },
-   {
-    "x": 3161,
-    "flag": true
-   },
-   {
-    "x": 3057,
+    "x": 2224,
     "flag": false
    },
    {
-    "x": 3161,
-    "flag": true
-   },
-   {
-    "x": 3161,
-    "flag": true
-   },
-   {
-    "x": 3161,
-    "flag": true
-   },
-   {
-    "x": 3161,
-    "flag": true
-   },
-   {
-    "x": 3161,
-    "flag": true
-   },
-   {
-    "x": 3161,
-    "flag": true
-   },
-   {
-    "x": 3161,
-    "flag": true
-   },
-   {
-    "x": 3161,
-    "flag": true
-   },
-   {
-    "x": 3161,
-    "flag": true
-   },
-   {
-    "x": 3161,
-    "flag": true
-   },
-   {
-    "x": 3161,
-    "flag": true
-   },
-   {
-    "x": 3161,
-    "flag": true
-   },
-   {
-    "x": 3057,
+    "x": 2229,
     "flag": false
    },
    {
-    "x": 3161,
+    "x": 2267,
     "flag": true
    },
    {
-    "x": 3027,
-    "flag": false
-   },
-   {
-    "x": 1935,
-    "flag": false
-   },
-   {
-    "x": 3161,
+    "x": 2257,
     "flag": true
    },
    {
-    "x": 3161,
+    "x": 2232,
+    "flag": false
+   },
+   {
+    "x": 2257,
     "flag": true
    },
    {
-    "x": 2003,
+    "x": 2259,
+    "flag": true
+   },
+   {
+    "x": 2229,
     "flag": false
+   },
+   {
+    "x": 2259,
+    "flag": true
+   },
+   {
+    "x": 2229,
+    "flag": false
+   },
+   {
+    "x": 2246,
+    "flag": true
+   },
+   {
+    "x": 2259,
+    "flag": true
+   },
+   {
+    "x": 2224,
+    "flag": false
+   },
+   {
+    "x": 2229,
+    "flag": false
+   },
+   {
+    "x": 2229,
+    "flag": false
+   },
+   {
+    "x": 2260,
+    "flag": true
+   },
+   {
+    "x": 2245,
+    "flag": true
+   },
+   {
+    "x": 2222,
+    "flag": false
+   },
+   {
+    "x": 2222,
+    "flag": false
+   },
+   {
+    "x": 2257,
+    "flag": true
+   },
+   {
+    "x": 2267,
+    "flag": true
    }
   ]
  }

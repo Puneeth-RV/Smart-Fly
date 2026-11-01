@@ -105,7 +105,30 @@ Warp Zone, reached by running along the ceiling past the exit pipe. Its pipes
 need the Down button, which the fly does not have, so it ran into the far wall
 until time ran out. Yet the ceiling route paid more distance than the exit,
 whose pipe moves Mario ahead in a single step, so the policy kept taking it.
-Now the attempt ends there, at the cost of a death.
+Now the attempt ends there, at the cost of a death. Within 7.5M frames it
+passed, 9 of 10.
+
+## 6. Bowser, and a jump the fly never tried
+
+1-3 was set aside after 25M frames: every test ended at the same place. Saving
+the failures again showed Mario jumping from a low treetop towards a tall one
+and hitting its underside. A search over button sequences found that the jump
+can only be made after a brief slow-down before take-off, which about 2% of
+random sequences find. The fly had learned to run flat out everywhere, because
+every earlier level paid for it, and never slowed down there.
+
+1-4 came next. Its failures were nearly all at Bowser on the final bridge
+(250 of the last 300), charging into him or his fire. Getting past him is a
+matter of timing rather than a wrong incentive, so nothing was changed; it
+passed after 28.6M frames, 8 of 10.
+
+Back on 1-3, the fly now gets practice starts: half its attempts replay the
+furthest route so far and hand control over at a random point along it. The
+first version handed over only near the end of that route; once a lucky attempt
+cleared the jump, practice moved past it and the jump was never learned.
+Spread along the route, it cleared the jump after 16M frames, and from practice
+starts beyond it reaches the flag. Making that jump reliably from the start of
+the level is what remains.
 
 ## What carried through
 
