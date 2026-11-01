@@ -56,6 +56,10 @@ The campaign tests a level every 1.5M frames of training and moves on at 8 of
 | 1-3 | in progress, 0/10 | 42.1M; one jump stops it, see below |
 | 1-4 | passed 8/10 | 28.6M, mostly learning to get past Bowser |
 
+<p align="center">
+  <img src="docs/media/fly-1-4.gif" alt="The fly finishing World 1-4: through the castle, then running under Bowser while he jumps, to the axe." width="820">
+</p>
+
 Next: 1-3 with practice starts, then World 2; keeping earlier levels while
 learning new ones; and a public page that replays each passed level with the
 fly's neurons alongside.
