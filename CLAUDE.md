@@ -81,7 +81,7 @@ for heat, stop it.
 - **Never delete branches** after merging, locally or on the remote.
 - **No Claude attribution anywhere**: no `Co-Authored-By`, `Claude-Session` or
   "Generated with Claude Code" lines in commits, PRs or files.
-- The GitHub repo is private. Do not change its visibility without being asked.
+- The GitHub repo is public. Do not change its visibility without being asked.
 
 ## Writing and frontend style
 
