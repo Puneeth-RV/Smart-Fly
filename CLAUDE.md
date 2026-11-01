@@ -78,7 +78,9 @@ for heat, stop it.
 
 - One feature branch per change (`feature/`, `fix/`, `docs/`, `chore/`,
   `refactor/`), several small commits, then `git merge --no-ff` into `main` and push.
-- **Never delete branches** after merging, locally or on the remote.
+- Delete a branch, locally and on the remote, once it is merged; the `--no-ff` merge
+  commit keeps it visible in history. Commit named files only (no `git commit -a`):
+  unfinished work left in the tree once got swept into main that way.
 - **No Claude attribution anywhere**: no `Co-Authored-By`, `Claude-Session` or
   "Generated with Claude Code" lines in commits, PRs or files.
 - The GitHub repo is public. Do not change its visibility without being asked.
