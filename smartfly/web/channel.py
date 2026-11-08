@@ -4,13 +4,13 @@ The site runs two:
 
     live     the level the campaign is training on, with the newest weights,
              reloaded between attempts -- so it improves as you watch
-    theater  levels the fly has mastered, played on request from a queue, and
-             in turn when nothing is queued
+    theater  a level the fly has mastered, 1-1 until someone asks for another;
+             it stays on the level asked for last, with requests queued
 
 Both play the top choice only, from random starts, exactly as the campaign
-tests. Every decision publishes the frame and a snapshot of what the fly saw and
-did: its retina, photoreceptors, optic-lobe maps, attention, the buttons it
-weighed, and the reward that followed.
+tests. Every decision publishes a snapshot of what the fly saw and did: its
+retina, photoreceptors, optic-lobe maps, attention, the buttons it weighed, and
+the reward that followed. Frames are published twice as often, for the stream.
 """
 
 from __future__ import annotations
@@ -31,6 +31,7 @@ from smartfly.paths import MODELS
 from smartfly.web.episode import play_attempt, raster_neurons
 
 DECISIONS_PER_SECOND = 15.0
+SHOW_EVERY = 2  # game frames per published frame: 30 a second at 15 decisions
 
 
 def campaign_state() -> dict:
@@ -43,15 +44,24 @@ def campaign_state() -> dict:
     return {}
 
 
+def _jpeg(frame: np.ndarray) -> bytes:
+    buf = io.BytesIO()
+    Image.fromarray(frame.astype(np.uint8), "RGB").save(buf, "JPEG", quality=80)
+    return buf.getvalue()
+
+
 class Channel:
     def __init__(self, name: str, checkpoint: Path, max_queue: int = 6):
         self.name, self.checkpoint, self.max_queue = name, checkpoint, max_queue
         self.lock = threading.Lock()
         self.state: dict = {"channel": name, "ready": False, "error": None}
         self.jpeg: bytes | None = None
+        self.frame_id = 0
+        self.fresh = threading.Condition(self.lock)
         self.queue: deque[str] = deque()
         self.history: deque[dict] = deque(maxlen=40)
-        self._rotation = 0
+        self._stay: str | None = None
+        self._due = 0.0
 
     # ----------------------------------------------------------------- queue
     def request(self, level: str) -> dict:
@@ -74,12 +84,32 @@ class Channel:
             return st.get("current")
         with self.lock:
             if self.queue:
-                return self.queue.popleft()
+                self._stay = self.queue.popleft()
         mastered = st.get("mastered", [])
-        if not mastered:
-            return None
-        self._rotation = (self._rotation + 1) % len(mastered)
-        return mastered[self._rotation]
+        if self._stay not in mastered:
+            self._stay = mastered[0] if mastered else None
+        return self._stay
+
+    def _wait_turn(self, frame_s: float) -> None:
+        """Hold each frame until its slot, so frames leave evenly spaced."""
+        now = time.time()
+        self._due = max(self._due + frame_s, now - frame_s)  # after a stall, resume, don't rush
+        time.sleep(max(0.0, self._due - now))
+
+    def _publish(self, jpeg: bytes) -> None:
+        with self.fresh:
+            self._show(jpeg)
+
+    def _show(self, jpeg: bytes) -> None:  # with the lock held
+        self.jpeg = jpeg
+        self.frame_id += 1
+        self.fresh.notify_all()
+
+    def next_frame(self, after: int, timeout: float = 10.0) -> tuple[int, bytes | None]:
+        """The newest frame once it is newer than `after` (or the timeout passes)."""
+        with self.fresh:
+            self.fresh.wait_for(lambda: self.frame_id != after, timeout)
+            return self.frame_id, self.jpeg
 
     def snapshot(self) -> dict:
         with self.lock:
@@ -109,6 +139,11 @@ class Channel:
         with self.lock:
             self.state["ready"] = True
 
+        def between(frame: np.ndarray) -> None:
+            jpeg = _jpeg(frame)
+            self._wait_turn(frame_s)
+            self._publish(jpeg)
+
         while True:
             level = self._next_level()
             if level is None:
@@ -124,17 +159,27 @@ class Channel:
             game = games[level]
             attempts += 1
             rewards: deque = deque(maxlen=160)
-            flag, t0 = False, time.time()
-            for step in play_attempt(player, game, rng, raster):
+            frame_s = SHOW_EVERY / (player.frame_skip * DECISIONS_PER_SECOND)
+            flag = False
+            steps = play_attempt(
+                player,
+                game,
+                rng,
+                raster,
+                show_every=SHOW_EVERY,
+                on_frame=between,
+                stop=lambda: bool(self.queue),
+            )
+            for step in steps:
                 flag = step.flag
                 s = step.state
                 rewards.append(
                     [s["reward"], s["value"], "flag" if flag else ("death" if step.died else "")]
                 )
-                buf = io.BytesIO()
-                Image.fromarray(step.frame.astype(np.uint8), "RGB").save(buf, "JPEG", quality=80)
-                with self.lock:
-                    self.jpeg = buf.getvalue()
+                jpeg = _jpeg(step.frame)
+                self._wait_turn(frame_s)
+                with self.fresh:
+                    self._show(jpeg)
                     self.state.update(
                         s,
                         idle=False,
@@ -143,8 +188,8 @@ class Channel:
                         reward_trace=list(rewards),
                         t=time.time(),
                     )
-                time.sleep(max(0.0, 1.0 / DECISIONS_PER_SECOND - (time.time() - t0)))
-                t0 = time.time()
+            if self.queue:  # cut short for a request: not a result
+                continue
             with self.lock:
                 result = {
                     "level": level,

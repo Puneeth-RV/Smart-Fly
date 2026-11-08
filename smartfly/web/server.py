@@ -2,6 +2,7 @@
 
     GET  /api/state/<live|theater>      what the fly is seeing and doing now
     GET  /api/frame/<live|theater>.jpg  the current game frame
+    GET  /api/stream/<live|theater>.mjpg  the game as it plays (MJPEG)
     GET  /api/campaign                  levels, tests and training progress
     POST /api/theater {"level": "1-1"}  ask the theater for a mastered level
 
@@ -31,6 +32,7 @@ from smartfly.web.channel import Channel, campaign_state
 
 LEVEL = re.compile(r"^[1-8]-[1-4]$")
 COOLDOWN_S = 20.0
+MAX_STREAMS = 200  # viewers watching at once; past this the page falls back to polling
 PROGRESS = re.compile(r"update +\d+ +frames +([\d.]+)M .*mean x +([\d.]+) .*flags (\d+)/(\d+)")
 
 
@@ -65,6 +67,7 @@ class Handler(SimpleHTTPRequestHandler):
     channels: dict[str, Channel] = {}
     last_request: dict[str, float] = {}
     request_lock = threading.Lock()
+    streams = 0
 
     def log_message(self, *args):
         pass
@@ -86,6 +89,30 @@ class Handler(SimpleHTTPRequestHandler):
         with contextlib.suppress(BrokenPipeError, ConnectionResetError):
             self.wfile.write(body)
 
+    def _stream(self, ch: Channel):
+        with self.request_lock:
+            if Handler.streams >= MAX_STREAMS:
+                return self._send(b"", "text/plain", 503)
+            Handler.streams += 1
+        try:
+            self.send_response(200)
+            self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            seen = -1
+            while True:
+                seen, jpeg = ch.next_frame(seen)
+                if jpeg is None:
+                    continue
+                head = b"--frame\r\nContent-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n"
+                self.wfile.write(head % len(jpeg) + jpeg + b"\r\n")
+                self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError, TimeoutError):
+            pass
+        finally:
+            with self.request_lock:
+                Handler.streams -= 1
+
     def _json(self, obj, code: int = 200):
         self._send(json.dumps(obj).encode(), "application/json", code)
 
@@ -102,6 +129,9 @@ class Handler(SimpleHTTPRequestHandler):
         if path.startswith("/api/state/"):
             ch = self.channels.get(path.rsplit("/", 1)[-1])
             return self._json(ch.snapshot()) if ch else self._json({"error": "no channel"}, 404)
+        if path.startswith("/api/stream/"):
+            ch = self.channels.get(path.rsplit("/", 1)[-1].removesuffix(".mjpg"))
+            return self._stream(ch) if ch else self._json({"error": "no channel"}, 404)
         if path.startswith("/api/frame/"):
             ch = self.channels.get(path.rsplit("/", 1)[-1].removesuffix(".jpg"))
             if not ch or ch.jpeg is None:

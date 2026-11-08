@@ -113,15 +113,28 @@
   }
 
   // ----------------------------------------------------------- frames
-  var img = $("game"), loading = false;
+  // A stream the server pushes frames into; one frame at a time if it is refused.
+  var img = $("game"), loading = false, streaming = true;
   function pump() {
-    if (loading) return;
+    if (loading || streaming) return;
     loading = true;
     var n = new Image();
     n.onload = function () { img.src = n.src; loading = false; setTimeout(pump, 40); };
     n.onerror = function () { loading = false; setTimeout(pump, 800); };
     n.src = "/api/frame/" + site.view() + ".jpg?t=" + Date.now();
   }
+  function stream() {
+    if (site.replay) return;
+    if (document.hidden) { img.removeAttribute("src"); return; }
+    if (streaming) img.src = "/api/stream/" + site.view() + ".mjpg?t=" + Date.now();
+    else pump();
+  }
+  img.addEventListener("error", function () {
+    if (site.replay || !streaming || !img.getAttribute("src")) return;
+    streaming = false;
+    setTimeout(pump, 800);
+  });
+  document.addEventListener("visibilitychange", stream);
 
   // ------------------------------------------------------------ state
   var listeners = [];
@@ -162,11 +175,11 @@
     polling = true;
     fetch("/api/state/" + site.view(), { cache: "no-store" })
       .then(function (r) { return r.json(); })
-      .then(function (s) { polling = false; render(s); setTimeout(poll, 120); })
+      .then(function (s) { polling = false; render(s); setTimeout(poll, 50); })
       .catch(function () { polling = false; $("badge").textContent = "Reconnecting…"; setTimeout(poll, 1500); });
   }
   $("show-heat").addEventListener("change", function () { drawHeat(null); });
-  window.addEventListener("viewchange", function () { built = false; $("game").removeAttribute("src"); });
+  window.addEventListener("viewchange", function () { built = false; stream(); });
 
   // --------------------------------------------------------- campaign
   var campListeners = [];
@@ -262,7 +275,7 @@
     }).catch(function () { $("badge").textContent = "Couldn’t load the recordings."; });
     window.addEventListener("viewchange", play);
   } else {
-    pump(); poll(); pollCampaign();
+    stream(); poll(); pollCampaign();
   }
 })();
 
@@ -446,7 +459,7 @@
       .then(function (res) {
         if (!res.ok) { $("queue-note").textContent = res.reason || "That didn’t work."; return; }
         $("queue-note").textContent = res.position === 0 ? lv + " is playing now." :
-          lv + " is in the queue, position " + res.position + ".";
+          res.position === 1 ? "Switching to " + lv + "…" : lv + " is in the queue, position " + res.position + ".";
         if (site.view() !== "theater") site.setView("theater");
       })
       .catch(function () { $("queue-note").textContent = "Couldn’t reach the fly. Try again in a moment."; });

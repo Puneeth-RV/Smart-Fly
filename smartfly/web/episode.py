@@ -6,7 +6,7 @@ live site would have shown.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 
 import numpy as np
@@ -45,11 +45,15 @@ def play_attempt(
     raster: np.ndarray,
     condition: str = "normal",
     start_jitter: int = 30,
+    show_every: int = 0,
+    on_frame: Callable[[np.ndarray], None] | None = None,
+    stop: Callable[[], bool] = lambda: False,
 ) -> Iterator[Step]:
     """Play one attempt from a random start, top choice only, as the campaign tests.
 
     `condition` is what the eye is shown: the game ("normal"), a blank screen
-    ("blind") or the same pixels in random positions ("scrambled").
+    ("blind") or the same pixels in random positions ("scrambled"). `on_frame`
+    sees every `show_every`-th game frame within a decision; `stop` ends it early.
     """
     fly, lay = player.fly, player.fly.layout
     retina = game.reset()
@@ -59,7 +63,7 @@ def play_attempt(
             retina = game.reset()
     player.reset()
     flag, best, since, total, decisions = False, 0, 0, 0.0, 0
-    while not game.done and since < STUCK_LIMIT and decisions < MAX_DECISIONS:
+    while not game.done and since < STUCK_LIMIT and decisions < MAX_DECISIONS and not stop():
         seen = retina
         if condition == "blind":
             seen = np.zeros_like(retina)
@@ -68,13 +72,15 @@ def play_attempt(
         d = player.decide(seen, attention=True)
         fired = np.flatnonzero(fly.brain.active[raster]).tolist()
         reward, died, info = 0.0, False, {}
-        for _ in range(player.frame_skip):
+        for i in range(1, player.frame_skip + 1):
             retina, r, done, info = game.step(d.action)
             reward += float(np.clip(r, -25, 15))
             flag |= bool(info.get("flag_get"))
             if done:
                 died = not info.get("flag_get")
                 break
+            if on_frame and i % show_every == 0 and i < player.frame_skip:
+                on_frame(game.frame)
         if flag:
             reward += FLAG_BONUS
         total += reward / 10
