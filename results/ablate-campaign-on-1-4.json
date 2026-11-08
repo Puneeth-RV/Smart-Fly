@@ -1,0 +1,132 @@
+{
+ "checkpoint": "models/fly-campaign.pt",
+ "level": "1-4",
+ "results": {
+  "normal": [
+   {
+    "x": 2268,
+    "flag": true
+   },
+   {
+    "x": 2229,
+    "flag": false
+   },
+   {
+    "x": 2261,
+    "flag": true
+   },
+   {
+    "x": 2270,
+    "flag": true
+   },
+   {
+    "x": 2229,
+    "flag": false
+   },
+   {
+    "x": 2259,
+    "flag": true
+   },
+   {
+    "x": 2246,
+    "flag": true
+   },
+   {
+    "x": 2227,
+    "flag": false
+   },
+   {
+    "x": 2225,
+    "flag": false
+   },
+   {
+    "x": 2224,
+    "flag": false
+   }
+  ],
+  "no-optic-lobe": [
+   {
+    "x": 442,
+    "flag": false
+   },
+   {
+    "x": 442,
+    "flag": false
+   },
+   {
+    "x": 1226,
+    "flag": false
+   },
+   {
+    "x": 442,
+    "flag": false
+   },
+   {
+    "x": 442,
+    "flag": false
+   },
+   {
+    "x": 1230,
+    "flag": false
+   },
+   {
+    "x": 442,
+    "flag": false
+   },
+   {
+    "x": 442,
+    "flag": false
+   },
+   {
+    "x": 442,
+    "flag": false
+   },
+   {
+    "x": 442,
+    "flag": false
+   }
+  ],
+  "no-photoreceptors": [
+   {
+    "x": 467,
+    "flag": false
+   },
+   {
+    "x": 467,
+    "flag": false
+   },
+   {
+    "x": 466,
+    "flag": false
+   },
+   {
+    "x": 468,
+    "flag": false
+   },
+   {
+    "x": 467,
+    "flag": false
+   },
+   {
+    "x": 466,
+    "flag": false
+   },
+   {
+    "x": 466,
+    "flag": false
+   },
+   {
+    "x": 467,
+    "flag": false
+   },
+   {
+    "x": 467,
+    "flag": false
+   },
+   {
+    "x": 467,
+    "flag": false
+   }
+  ]
+ }
+}
