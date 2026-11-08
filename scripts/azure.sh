@@ -37,7 +37,9 @@ write_files:
     content: |
       $HOST {
         encode gzip
-        reverse_proxy 127.0.0.1:8090
+        reverse_proxy 127.0.0.1:8090 {
+          flush_interval -1
+        }
       }
   - path: /etc/systemd/system/smartfly-site.service
     content: |
