@@ -86,6 +86,14 @@ class RunningNorm:
         self.mean, self.var, self.count = state
 
 
+def silenced(layout: dict[str, slice], n: int, k: int, groups) -> np.ndarray:
+    """Input positions of these feature groups, in all `k` decisions of memory."""
+    idx = [
+        np.arange(j * n + layout[g].start, j * n + layout[g].stop) for j in range(k) for g in groups
+    ]
+    return np.concatenate(idx) if idx else np.zeros(0, int)
+
+
 @dataclass
 class Decision:
     action: int
@@ -112,11 +120,16 @@ class Player:
         self.net.eval()
         self.norm = RunningNorm(self.fly.n_features * self.k + N_ACTIONS)
         self.norm.load(ck["norm"])
+        self.quiet = np.zeros(0, int)
         self._last: int | None = None
 
     def reset(self) -> None:
         self.fly.reset()
         self._last = None
+
+    def silence(self, groups=()) -> None:
+        """Hold these feature groups at their training average (an ablation)."""
+        self.quiet = silenced(self.fly.layout, self.fly.n_features, self.k, groups)
 
     def decide(
         self,
@@ -128,7 +141,9 @@ class Player:
         """Show the fly a retina image and get its choice."""
         f = self.fly.see(retina)
         obs = self.memory.reset(f) if self._last is None else self.memory.push(f, self._last)
-        x = torch.from_numpy(self.norm(obs).astype(np.float32))[None]
+        z = self.norm(obs)
+        z[self.quiet] = 0.0
+        x = torch.from_numpy(z.astype(np.float32))[None]
         if attention:
             x.requires_grad_(True)
             logits, value = self.net(x)

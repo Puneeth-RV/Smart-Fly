@@ -11,7 +11,7 @@ from smartfly.brain import REST, GradedBrain
 from smartfly.campaign import getting_close, level_mix, next_level
 from smartfly.eye import HexToScreen, photoreceptor_pixels
 from smartfly.game import ACTIONS, LEVELS, RETINA, retina
-from smartfly.policy import ActorCritic, Memory, RunningNorm
+from smartfly.policy import ActorCritic, Memory, RunningNorm, silenced
 from smartfly.probe import readout_accuracy
 from smartfly.train import parse_levels
 from smartfly.web.server import training_progress
@@ -105,6 +105,13 @@ def test_running_norm_standardises():
         norm.update(rng.normal(5, 2, (64, 4)))
     z = norm(rng.normal(5, 2, (1000, 4)))
     assert abs(z.mean()) < 0.1 and abs(z.std() - 1) < 0.1
+
+
+def test_silenced_covers_each_group_in_every_memory_slot():
+    layout = {"a": slice(0, 3), "b": slice(3, 5), "c": slice(5, 6)}
+    idx = silenced(layout, n=6, k=2, groups=("a", "c"))
+    assert sorted(idx.tolist()) == [0, 1, 2, 5, 6, 7, 8, 11]  # never b, never the last button
+    assert silenced(layout, n=6, k=2, groups=()).size == 0
 
 
 def test_actor_critic_shapes():
