@@ -66,6 +66,7 @@ class Channel:
         self.queue: deque[str] = deque()
         self.history: deque[dict] = deque(maxlen=40)
         self._stay: str | None = None
+        self._due = 0.0
 
     # ----------------------------------------------------------------- queue
     def request(self, level: str) -> dict:
@@ -93,6 +94,12 @@ class Channel:
         if self._stay not in mastered:
             self._stay = mastered[0] if mastered else None
         return self._stay
+
+    def _wait_turn(self, frame_s: float) -> None:
+        """Hold each frame until its slot, so frames leave evenly spaced."""
+        now = time.time()
+        self._due = max(self._due + frame_s, now - frame_s)  # after a stall, resume, don't rush
+        time.sleep(max(0.0, self._due - now))
 
     def _publish(self, jpeg: bytes) -> None:
         with self.fresh:
@@ -162,8 +169,8 @@ class Channel:
             flag, best, since, total, decisions = False, 0, 0, 0.0, 0
             rewards: deque = deque(maxlen=160)
             info: dict = {}
+            frame_s = SHOW_EVERY / (player.frame_skip * DECISIONS_PER_SECOND)
             while not game.done and since < STUCK_LIMIT and decisions < 1500 and not self.queue:
-                t0 = time.time()
                 seen = retina.copy()
                 d = player.decide(retina, attention=True)
                 fired = np.flatnonzero(fly.brain.active[raster]).tolist()
@@ -176,9 +183,9 @@ class Channel:
                         died = not info.get("flag_get")
                         break
                     if i % SHOW_EVERY == 0 and i < player.frame_skip:
-                        self._publish(_jpeg(game.frame))
-                        due = t0 + i / (player.frame_skip * DECISIONS_PER_SECOND)
-                        time.sleep(max(0.0, due - time.time()))
+                        jpeg = _jpeg(game.frame)
+                        self._wait_turn(frame_s)
+                        self._publish(jpeg)
                 if flag:
                     reward += FLAG_BONUS
                 total += reward / 10
@@ -196,6 +203,7 @@ class Channel:
                 )
                 jpeg = _jpeg(game.frame)
                 f = d.features
+                self._wait_turn(frame_s)
                 with self.fresh:
                     self._show(jpeg)
                     self.state.update(
@@ -226,7 +234,6 @@ class Channel:
                             "t": time.time(),
                         }
                     )
-                time.sleep(max(0.0, 1.0 / DECISIONS_PER_SECOND - (time.time() - t0)))
             if self.queue:  # cut short for a request: not a result
                 continue
             with self.lock:
