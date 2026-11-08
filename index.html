@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta name="smartfly-mode" content="replay">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>A Fly Plays Mario</title>
+<meta name="description" content="A simulated fruit-fly brain, built from the real connectome, learning Super Mario Bros level by level.">
+<script>
+  // Apply the saved theme before first paint, so the page never flashes.
+  (function(){ try { var q = (location.search.match(/[?&]theme=(light|dark|system)/) || [])[1];
+    if (q) localStorage.setItem("theme", q);
+    var t = localStorage.getItem("theme");
+    if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {} })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Press+Start+2P&display=swap">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap top-row">
+    <a class="mark" href="./">Smart-Fly</a>
+    <nav class="tabs" role="tablist" aria-label="View">
+      <button role="tab" id="tab-live" aria-selected="true" data-view="live"><span class="only-live">Training now</span><span class="only-replay">Latest practice</span></button>
+      <button role="tab" id="tab-theater" aria-selected="false" data-view="theater">Finished levels</button>
+    </nav>
+    <div class="theme" role="group" aria-label="Colour theme">
+      <button data-theme-set="light" aria-pressed="false">Light</button>
+      <button data-theme-set="dark" aria-pressed="false">Dark</button>
+      <button data-theme-set="system" aria-pressed="true">Auto</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="intro">
+    <h1>A fruit fly’s brain, learning to play <span class="pixel">Mario</span>.</h1>
+    <p class="lede">The eye and visual system below are simulated neuron by neuron from the
+      fruit-fly connectome, the complete wiring diagram of a real fly brain. It sees only the
+      game’s pixels. A small learned network turns what those neurons do into button presses,
+      and practice is the only teacher: moving forward is rewarded, dying is punished.</p>
+    <p class="note only-replay">These are recorded runs. The fly keeps training on a laptop; the
+      recordings and the numbers below are refreshed from time to time.</p>
+    <dl class="facts">
+      <div><dt>Learning now</dt><dd id="f-level">—</dd></div>
+      <div><dt>Levels mastered</dt><dd id="f-mastered">—</dd></div>
+      <div><dt>Practice so far</dt><dd id="f-frames">—</dd></div>
+      <div><dt>Neurons simulated</dt><dd>92,743</dd></div>
+    </dl>
+  </section>
+
+  <!-- One stage, shared by both views; the active channel fills it. -->
+  <section class="stage" aria-live="off">
+    <div class="screen-col">
+      <div class="screen">
+        <img id="game" alt="The game as the fly is playing it right now">
+        <canvas id="heat" aria-hidden="true"></canvas>
+        <div class="badge" id="badge">Connecting…</div>
+        <div class="flag" id="flag" hidden>Reached the flag</div>
+      </div>
+      <div class="screen-bar">
+        <span id="where">—</span>
+        <label class="switch"><input type="checkbox" id="show-heat" checked> Show where it’s looking</label>
+      </div>
+    </div>
+
+    <aside class="decide">
+      <h2 class="label">Its choice, this instant</h2>
+      <ol class="buttons" id="buttons"></ol>
+      <div class="kv">
+        <div><span>Distance</span><b id="k-x">—</b></div>
+        <div><span>Reward it expects from here</span><b id="k-value">—</b></div>
+        <div><span>Neurons strongly active</span><b id="k-active">—</b></div>
+        <div><span>Brain version</span><b id="k-ckpt">—</b></div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="block view-theater" hidden>
+    <header class="block-head">
+      <h2>Watch a finished level</h2>
+      <p class="only-live">Pick any level it has mastered. Everyone watching sees the same run, so
+         requests wait their turn. With nothing requested it replays finished levels on its own.</p>
+      <p class="only-replay">Pick a level it has mastered, then compare: the same fly with its eyes
+         working, with the screen blanked, and with the same pixels shuffled into random places.</p>
+    </header>
+    <div class="picker" id="picker"></div>
+    <div class="conditions only-replay" id="conditions" role="group" aria-label="What the eye is shown">
+      <button data-condition="normal" aria-pressed="true">Eyes working</button>
+      <button data-condition="blind" aria-pressed="false">Blind</button>
+      <button data-condition="scrambled" aria-pressed="false">Scrambled</button>
+    </div>
+    <p class="note" id="queue-note"></p>
+    <h3 class="sub"><span class="only-live">Recent runs</span><span class="only-replay">Recorded runs</span></h3>
+    <ol class="runs" id="runs"></ol>
+  </section>
+
+  <section class="block">
+    <header class="block-head">
+      <h2>How it sees</h2>
+      <p>Left to right is the path every frame takes, about fifteen times a second.</p>
+    </header>
+    <ol class="pipeline">
+      <li>
+        <canvas id="v-eye" class="viz wide"></canvas>
+        <h3><span class="step">1</span> What reaches the eye</h3>
+        <p>The game reduced to the 24 × 15 patches the eye covers. Bright marks are edges.</p>
+      </li>
+      <li>
+        <canvas id="v-photo" class="viz wide"></canvas>
+        <h3><span class="step">2</span> Photoreceptors</h3>
+        <p>The 3,354 light-sensing neurons themselves, responding. This is the brain’s own
+           activity, not the picture.</p>
+      </li>
+      <li>
+        <canvas id="v-deep" class="viz"></canvas>
+        <h3><span class="step">3</span> Deeper optic lobe</h3>
+        <p>The rest of the visual system. The picture blurs here; the wiring is real, the
+           connection strengths are not known.</p>
+      </li>
+      <li>
+        <canvas id="v-attn" class="viz"></canvas>
+        <h3><span class="step">4</span> What decided it</h3>
+        <p>Which parts of its view moved this choice most. Ideally the next obstacle.</p>
+      </li>
+    </ol>
+    <div class="raster-wrap">
+      <canvas id="v-raster" class="raster"></canvas>
+      <p class="caption">480 optic-lobe neurons over the last few seconds, top of the view to
+        bottom. Each mark is a neuron strongly active at that moment.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <header class="block-head">
+      <h2>Reward and punishment</h2>
+      <p>The only feedback it learns from. Each bar is one decision.</p>
+    </header>
+    <canvas id="v-reward" class="reward"></canvas>
+    <ul class="legend">
+      <li><i class="sw good"></i>Moved forward</li>
+      <li><i class="sw bad"></i>Clock ticking, moving back, or dying</li>
+      <li><i class="sw line"></i>What it expected to earn</li>
+      <li id="ret" class="ret"></li>
+    </ul>
+  </section>
+
+
+  <section class="block">
+    <header class="block-head">
+      <h2>The whole game</h2>
+      <p>It moves on once it reaches the flag in at least 8 of 10 test runs, each starting
+         slightly differently, choosing only its top button. Levels it can’t pass yet are set
+         aside and revisited.</p>
+    </header>
+    <div class="worlds" id="worlds"></div>
+    <ul class="legend">
+      <li><i class="sw mastered"></i>Mastered</li>
+      <li><i class="sw current"></i>Learning now</li>
+      <li><i class="sw parked"></i>Set aside for now</li>
+    </ul>
+    <div class="charts">
+      <figure><canvas id="c-rate"></canvas><figcaption>Share of recent practice runs that reached the flag</figcaption></figure>
+      <figure><canvas id="c-dist"></canvas><figcaption>Average distance of recent practice runs</figcaption></figure>
+    </div>
+    <h3 class="sub">Tests</h3>
+    <ol class="tests" id="tests"></ol>
+  </section>
+
+</main>
+
+<div class="ground" aria-hidden="true"></div>
+
+<footer class="wrap foot">
+  <p>Connectome: MaleCNS v1.0, Google Research and HHMI Janelia, CC-BY. Emulator: gym-super-mario-bros.
+     The visual system is simulated with graded (non-spiking) neurons on the published wiring; the
+     network that chooses buttons is trained with PPO. Runs here use the fly’s top choice only.</p>
+  <p><a href="https://github.com/Puneeth-RV/Smart-Fly">Source and method on GitHub</a></p>
+</footer>
+
+<script src="site.js"></script>
+</body>
+</html>
