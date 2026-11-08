@@ -4,8 +4,8 @@ The site runs two:
 
     live     the level the campaign is training on, with the newest weights,
              reloaded between attempts -- so it improves as you watch
-    theater  levels the fly has mastered, played on request from a queue, and
-             in turn when nothing is queued
+    theater  a level the fly has mastered, 1-1 until someone asks for another;
+             it stays on the level asked for last, with requests queued
 
 Both play the top choice only, from random starts, exactly as the campaign
 tests. Every decision publishes a snapshot of what the fly saw and did: its
@@ -65,7 +65,7 @@ class Channel:
         self.fresh = threading.Condition(self.lock)
         self.queue: deque[str] = deque()
         self.history: deque[dict] = deque(maxlen=40)
-        self._rotation = 0
+        self._stay: str | None = None
 
     # ----------------------------------------------------------------- queue
     def request(self, level: str) -> dict:
@@ -88,12 +88,11 @@ class Channel:
             return st.get("current")
         with self.lock:
             if self.queue:
-                return self.queue.popleft()
+                self._stay = self.queue.popleft()
         mastered = st.get("mastered", [])
-        if not mastered:
-            return None
-        self._rotation = (self._rotation + 1) % len(mastered)
-        return mastered[self._rotation]
+        if self._stay not in mastered:
+            self._stay = mastered[0] if mastered else None
+        return self._stay
 
     def _publish(self, jpeg: bytes) -> None:
         with self.fresh:
@@ -163,7 +162,7 @@ class Channel:
             flag, best, since, total, decisions = False, 0, 0, 0.0, 0
             rewards: deque = deque(maxlen=160)
             info: dict = {}
-            while not game.done and since < STUCK_LIMIT and decisions < 1500:
+            while not game.done and since < STUCK_LIMIT and decisions < 1500 and not self.queue:
                 t0 = time.time()
                 seen = retina.copy()
                 d = player.decide(retina, attention=True)
@@ -228,6 +227,8 @@ class Channel:
                         }
                     )
                 time.sleep(max(0.0, 1.0 / DECISIONS_PER_SECOND - (time.time() - t0)))
+            if self.queue:  # cut short for a request: not a result
+                continue
             with self.lock:
                 result = {
                     "level": level,

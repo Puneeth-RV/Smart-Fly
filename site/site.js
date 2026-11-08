@@ -367,7 +367,7 @@
       .then(function (res) {
         if (!res.ok) { $("queue-note").textContent = res.reason || "That didn’t work."; return; }
         $("queue-note").textContent = res.position === 0 ? lv + " is playing now." :
-          lv + " is in the queue, position " + res.position + ".";
+          res.position === 1 ? "Switching to " + lv + "…" : lv + " is in the queue, position " + res.position + ".";
         if (site.view() !== "theater") site.setView("theater");
       })
       .catch(function () { $("queue-note").textContent = "Couldn’t reach the fly. Try again in a moment."; });
