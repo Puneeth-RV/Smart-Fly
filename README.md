@@ -64,9 +64,8 @@ The campaign tests a level every 1.5M frames of training and moves on at 8 of
   <img src="docs/media/fly-1-4.gif" alt="The fly finishing World 1-4: through the castle, then running under Bowser while he jumps, to the axe." width="820">
 </p>
 
-Next: 1-3 with practice starts, then World 2; keeping earlier levels while
-learning new ones; and a public page that replays each passed level with the
-fly's neurons alongside.
+Next: 1-3 with practice starts, then World 2, and keeping earlier levels while
+learning new ones.
 
 ## How it works
 
@@ -166,6 +165,7 @@ smartfly/
   connectome/      download, build, and extract the visual system
   web/             the live site's server, and the recorder for the published one
 site/              the page
+scripts/           start the campaign, run it on Azure, publish the site, make the GIFs
 models/            trained flies
 results/           the measurements quoted here
 docs/              how it works, and the journey
