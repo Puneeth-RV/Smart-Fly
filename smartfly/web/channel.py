@@ -8,9 +8,9 @@ The site runs two:
              in turn when nothing is queued
 
 Both play the top choice only, from random starts, exactly as the campaign
-tests. Every decision publishes the frame and a snapshot of what the fly saw and
-did: its retina, photoreceptors, optic-lobe maps, attention, the buttons it
-weighed, and the reward that followed.
+tests. Every decision publishes a snapshot of what the fly saw and did: its
+retina, photoreceptors, optic-lobe maps, attention, the buttons it weighed, and
+the reward that followed. Frames are published twice as often, for the stream.
 """
 
 from __future__ import annotations
@@ -31,6 +31,7 @@ from smartfly.paths import MODELS
 from smartfly.train import FLAG_BONUS, STUCK_LIMIT
 
 DECISIONS_PER_SECOND = 15.0
+SHOW_EVERY = 2  # game frames per published frame: 30 a second at 15 decisions
 RASTER_NEURONS = 480
 
 
@@ -44,6 +45,12 @@ def campaign_state() -> dict:
     return {}
 
 
+def _jpeg(frame: np.ndarray) -> bytes:
+    buf = io.BytesIO()
+    Image.fromarray(frame.astype(np.uint8), "RGB").save(buf, "JPEG", quality=80)
+    return buf.getvalue()
+
+
 def _r3(values) -> list[float]:
     return [round(float(v), 3) for v in values]
 
@@ -54,6 +61,8 @@ class Channel:
         self.lock = threading.Lock()
         self.state: dict = {"channel": name, "ready": False, "error": None}
         self.jpeg: bytes | None = None
+        self.frame_id = 0
+        self.fresh = threading.Condition(self.lock)
         self.queue: deque[str] = deque()
         self.history: deque[dict] = deque(maxlen=40)
         self._rotation = 0
@@ -85,6 +94,21 @@ class Channel:
             return None
         self._rotation = (self._rotation + 1) % len(mastered)
         return mastered[self._rotation]
+
+    def _publish(self, jpeg: bytes) -> None:
+        with self.fresh:
+            self._show(jpeg)
+
+    def _show(self, jpeg: bytes) -> None:  # with the lock held
+        self.jpeg = jpeg
+        self.frame_id += 1
+        self.fresh.notify_all()
+
+    def next_frame(self, after: int, timeout: float = 10.0) -> tuple[int, bytes | None]:
+        """The newest frame once it is newer than `after` (or the timeout passes)."""
+        with self.fresh:
+            self.fresh.wait_for(lambda: self.frame_id != after, timeout)
+            return self.frame_id, self.jpeg
 
     def snapshot(self) -> dict:
         with self.lock:
@@ -145,13 +169,17 @@ class Channel:
                 d = player.decide(retina, attention=True)
                 fired = np.flatnonzero(fly.brain.active[raster]).tolist()
                 reward, died = 0.0, False
-                for _ in range(player.frame_skip):
+                for i in range(1, player.frame_skip + 1):
                     retina, r, done, info = game.step(d.action)
                     reward += float(np.clip(r, -25, 15))
                     flag |= bool(info.get("flag_get"))
                     if done:
                         died = not info.get("flag_get")
                         break
+                    if i % SHOW_EVERY == 0 and i < player.frame_skip:
+                        self._publish(_jpeg(game.frame))
+                        due = t0 + i / (player.frame_skip * DECISIONS_PER_SECOND)
+                        time.sleep(max(0.0, due - time.time()))
                 if flag:
                     reward += FLAG_BONUS
                 total += reward / 10
@@ -167,11 +195,10 @@ class Channel:
                         "flag" if flag else ("death" if died else ""),
                     ]
                 )
-                buf = io.BytesIO()
-                Image.fromarray(game.frame.astype(np.uint8), "RGB").save(buf, "JPEG", quality=80)
+                jpeg = _jpeg(game.frame)
                 f = d.features
-                with self.lock:
-                    self.jpeg = buf.getvalue()
+                with self.fresh:
+                    self._show(jpeg)
                     self.state.update(
                         {
                             "idle": False,
