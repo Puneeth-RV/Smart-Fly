@@ -37,6 +37,18 @@ Blind, it walks into the first Goomba. Scrambled, so that it gets the same
 brightness and the same amount of change but no layout, it does no better than
 random buttons. Its skill depends on *where* things are on the screen.
 
+It also needs both halves of what it reads. With one part held at its average
+from training (`--conditions no-optic-lobe,no-photoreceptors`), it fails:
+
+| | World 1-1 | World 1-4 |
+|---|---|---|
+| Everything it normally reads | **10 / 10** · 3,161 | **5 / 10** · 2,244 |
+| Photoreceptors only (optic-lobe maps silenced) | 1 / 10 · 1,209 | 0 / 10 · 599 |
+| Optic lobe only (photoreceptors silenced) | 0 / 10 · 817 | 0 / 10 · 467 |
+
+The parts were silenced only when testing, so this shows what this policy depends
+on, not that the optic lobe holds information the photoreceptors lack.
+
 Ten attempts is a small sample. On 1-2 the fly passed its campaign test 9 of 10;
 over 30 fresh attempts it finished 21 (70%). Of the 9 failures, 3 still ran over
 the ceiling into the Warp Zone and 6 died earlier in the level. On 1-4 it passed
