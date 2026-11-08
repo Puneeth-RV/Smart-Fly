@@ -200,7 +200,8 @@
 
   // ----------------------------------------------------------- replay
   // Plays recorded runs (replays/<id>/run.json and one JPEG per decision) through
-  // the same render path the live site uses, at the same fifteen decisions a second.
+  // the same render path the live site uses, at the same fifteen decisions a second,
+  // with the frame halfway through each decision in between.
   var CONDITION = { normal: "", blind: "blind", scrambled: "scrambled eyes" };
   var index = null, runs = {}, current = null, timer = null;
   site.pick = { level: null, condition: "normal" };
@@ -221,9 +222,9 @@
   function load(meta, done) {
     if (runs[meta.id]) return done(runs[meta.id]);
     fetch("replays/" + meta.id + "/run.json").then(function (r) { return r.json(); }).then(function (run) {
-      run.frames = run.steps.map(function (_, i) {
-        var im = new Image(); im.src = "replays/" + meta.id + "/" + String(i).padStart(4, "0") + ".jpg"; return im;
-      });
+      function frame(name) { var im = new Image(); im.src = "replays/" + meta.id + "/" + name + ".jpg"; return im; }
+      run.frames = run.steps.map(function (_, i) { return frame(String(i).padStart(4, "0")); });
+      run.halves = run.steps.map(function (st, i) { return st.h ? frame(String(i).padStart(4, "0") + "h") : null; });
       runs[meta.id] = run; done(run);
     });
   }
@@ -240,14 +241,17 @@
     load(meta, function (run) {
       if (current !== meta.id) return;
       run.practice = meta.practice;
-      var i = 0, trace = [], hold = 0;
+      var i = 0, trace = [], hold = 0, half = true;
       var history = index.runs.filter(function (r) { return !r.practice; }).map(function (r) {
         return { t: r.recorded, level: r.level, x: r.x, flag: r.flag, note: CONDITION[r.condition] };
       });
       (function tick() {
         if (current !== meta.id) return;
-        var st = run.steps[i], im = run.frames[i];
-        if (!im.complete) { timer = setTimeout(tick, 30); return; }  // wait for the frame
+        var st = run.steps[i], im = run.frames[i], h = run.halves[i];
+        if (!im.complete || (h && !h.complete)) { timer = setTimeout(tick, 30); return; }  // wait for it
+        if (hold === 0 && half && h) { img.src = h.src; half = false; timer = setTimeout(tick, 1000 / 30); return; }
+        var wait = h && hold === 0 ? 1000 / 30 : 1000 / 15;
+        half = true;
         if (hold === 0) {
           trace.push([st.r, st.v, st.ev]); if (trace.length > 160) trace.shift();
           img.src = im.src;
@@ -260,7 +264,7 @@
             active: st.act, show_flag: st.ev === "flag", history: history, queue: []
           });
         }
-        if (i < run.steps.length - 1) { i++; timer = setTimeout(tick, 1000 / 15); return; }
+        if (i < run.steps.length - 1) { i++; timer = setTimeout(tick, wait); return; }
         // Hold the last moment, then play it again from the start.
         if (++hold < 30) { timer = setTimeout(tick, 1000 / 15); return; }
         i = 0; hold = 0; trace = []; timer = setTimeout(tick, 400);
