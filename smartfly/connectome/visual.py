@@ -1,7 +1,7 @@
 """The part of the connectome the fly uses: its eye and optic lobe.
 
 The full matrix is 166,197 neurons and 84 MB. The fly needs only the R1-R6
-photoreceptors and the optic lobe -- 92,743 neurons and 3.69M synapses -- plus
+photoreceptors and the optic lobe -- 92,743 neurons and 3.69M connections -- plus
 the ommatidial coordinates that say where each optic-lobe column looks. This
 module cuts that out into data/visual_system.npz, so playing and training never
 touch the full connectome.
@@ -82,7 +82,7 @@ def extract() -> None:
     )
     print(
         f"wrote {VISUAL_SYSTEM}: {keep.size:,} neurons ({photo.size:,} photoreceptors), "
-        f"{sub.nnz:,} synapses"
+        f"{sub.nnz:,} connections, {int(abs(sub).sum()):,} synapses"
     )
 
 

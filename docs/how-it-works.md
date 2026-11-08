@@ -14,7 +14,7 @@ retina
 photoreceptors ─┐
   │             │  brain  graded neurons on the real wiring, 6 steps per decision
   ▼             │
-optic lobe ─────┘         89,389 neurons, 3.69M synapses between them all
+optic lobe ─────┘         89,389 neurons; 3.69M connections between them all
   │  fly.features         activity averaged onto maps of the visual field: 1,344 numbers
   ▼
 policy                    actor-critic network, memory of 4 decisions + last button   ← trained (PPO)
@@ -56,7 +56,7 @@ since the last decision`.
 
 `smartfly/brain.py`, `smartfly/connectome/`. The fly uses the R1-R6
 photoreceptors and the optic lobe from the MaleCNS v1.0 connectome: 92,743
-neurons, 3.69M synapses, with signs from each neuron's predicted transmitter
+neurons and 3.69M connections (29.1M synapses), with signs from each neuron's predicted transmitter
 (acetylcholine excites; GABA, glutamate and histamine inhibit).
 
 Each neuron is a leaky graded unit, `v ← v + (W·r + 0.5 + input − v) / 3`, with

@@ -14,8 +14,8 @@ weighed, and the same fly blind or with its pixels scrambled.
   <img src="docs/media/fly-1-1.gif" alt="The fly playing World 1-1. The orange glow shows where it was looking when it chose its button; on the right, what reaches its eye, its photoreceptors' response, and the buttons it weighed." width="820">
 </p>
 
-The eye and optic lobe of a male fruit fly (92,743 neurons and 3.69 million
-synapses, from the MaleCNS v1.0 connectome) are simulated from their real wiring
+The eye and optic lobe of a male fruit fly (92,743 neurons joined by 3.69 million
+connections, 29.1 million synapses, from the MaleCNS v1.0 connectome) are simulated from their real wiring
 and shown the game screen. A small network, trained by reinforcement learning,
 turns what those neurons do into button presses. The fly has mastered Worlds 1-1,
 1-2 and 1-4, using only its top choice, from varied starts, and is working on 1-3.
@@ -101,8 +101,9 @@ Details in [docs/how-it-works.md](docs/how-it-works.md).
   not their strengths.
 - **Learned:** the policy network that turns optic-lobe activity into buttons.
   It is a standard network; the fly brain does not learn here.
-- **Not claimed:** that this is how a fly would play Mario, or that it plays
-  levels it has not trained on.
+- **Not claimed:** that this is how a fly would play Mario, that it plays
+  levels it has not trained on, or that the connectome makes it play better than
+  a network reading the pixels directly. That comparison has not been run.
 
 ## Quick start
 

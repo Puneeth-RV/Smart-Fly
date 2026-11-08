@@ -5,7 +5,7 @@ Notes for working on this repository with Claude Code.
 ## What this is
 
 A fruit fly's visual system (R1-R6 photoreceptors + optic lobe, 92,743 neurons,
-3.69M synapses from the MaleCNS v1.0 connectome) simulated as graded neurons and
+3.69M connections (29.1M synapses) from the MaleCNS v1.0 connectome) simulated as graded neurons and
 shown Super Mario Bros. A small PPO policy reads optic-lobe activity and picks
 buttons. The connectome part is fixed; only the policy learns. See
 `docs/how-it-works.md` for the pipeline and `docs/journey.md` for what failed and why.
