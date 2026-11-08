@@ -11,7 +11,15 @@ attempts are not replays of one deterministic game.
                same brightness, same amount of change, no layout
     random     buttons pressed at random, no fly at all
 
+Two more take away part of what the policy reads, holding it at its average
+from training. They ask which part of the visual system the policy relies on:
+
+    no-optic-lobe      the optic-lobe maps (deep, motion, first layer) silenced
+    no-photoreceptors  the photoreceptor features (eye, photo) silenced
+
     python -m smartfly.evaluate models/fly-1-1.pt --level 1-1 --attempts 10
+    python -m smartfly.evaluate models/fly-1-2.pt \
+        --conditions normal,no-optic-lobe,no-photoreceptors
 """
 
 from __future__ import annotations
@@ -27,6 +35,10 @@ from smartfly.policy import Player
 from smartfly.train import STUCK_LIMIT
 
 CONDITIONS = ("normal", "blind", "scrambled", "random")
+SILENCE = {
+    "no-optic-lobe": ("deep", "motion", "first"),
+    "no-photoreceptors": ("eye", "photo"),
+}
 
 
 def play(
@@ -39,6 +51,8 @@ def play(
 ) -> list[dict]:
     """Play `attempts` attempts; returns the distance and whether it reached the flag."""
     rng = np.random.default_rng(seed)
+    if player:
+        player.silence(SILENCE.get(condition, ()))
     game = Mario(level)
     results = []
     for i in range(attempts):
@@ -70,11 +84,13 @@ def play(
         results.append({"x": int(game.max_x), "flag": flag})
         if verbose:
             print(
-                f"  {condition:9s} attempt {i + 1}: distance {game.max_x:5d}"
+                f"  {condition:17s} attempt {i + 1}: distance {game.max_x:5d}"
                 f"{'  reached the flag' if flag else ''}",
                 flush=True,
             )
     game.close()
+    if player:
+        player.silence()
     return results
 
 
@@ -93,10 +109,10 @@ def main() -> None:
         c: play(player, args.level, args.attempts, c, verbose=True)
         for c in args.conditions.split(",")
     }
-    print(f"\n{'condition':10s} {'flags':>7s} {'mean distance':>14s}")
+    print(f"\n{'condition':18s} {'flags':>7s} {'mean distance':>14s}")
     for c, rs in results.items():
         print(
-            f"{c:10s} {sum(r['flag'] for r in rs):>3d}/{len(rs):<3d} "
+            f"{c:18s} {sum(r['flag'] for r in rs):>3d}/{len(rs):<3d} "
             f"{np.mean([r['x'] for r in rs]):14.0f}"
         )
     if args.save:
