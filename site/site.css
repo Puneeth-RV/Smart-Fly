@@ -82,7 +82,8 @@ h1 {
   font-family: var(--serif); font-weight: 400; letter-spacing: -.018em;
   font-size: clamp(30px, 4.6vw, 52px); line-height: 1.06; margin: 0 0 16px; max-width: 18ch;
 }
-h1 em { font-style: italic; }
+/* NES-style lettering; the pixel face runs wide, so it is set smaller. */
+h1 .pixel { font-family: "Press Start 2P", var(--mono); font-size: .66em; letter-spacing: 0; }
 .lede { max-width: 66ch; color: var(--ink-2); font-size: 16.5px; margin: 0; }
 .facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 30px 0 0; }
 .facts div { padding: 0 18px; border-left: 1px solid var(--rule); }
