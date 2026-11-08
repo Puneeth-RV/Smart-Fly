@@ -24,6 +24,7 @@ from smartfly.campaign import FLY
 from smartfly.game import ACTIONS, Mario
 from smartfly.paths import MODELS, RUNS, SITE
 from smartfly.policy import Player
+from smartfly.web.channel import SHOW_EVERY
 from smartfly.web.episode import play_attempt, raster_neurons
 from smartfly.web.server import campaign_summary
 
@@ -48,10 +49,22 @@ def record(
     raster = raster_neurons(player)
     game = Mario(level)
     for attempt in range(1, max(until_flag, 1) + 1):
-        steps, frames = [], []
-        for step in play_attempt(player, game, rng, raster, condition):
+        steps, frames, between = [], [], []
+        mid: list[np.ndarray] = []
+        attempt_steps = play_attempt(
+            player,
+            game,
+            rng,
+            raster,
+            condition,
+            show_every=SHOW_EVERY,
+            on_frame=lambda f, mid=mid: mid.append(f.astype(np.uint8)),
+        )
+        for step in attempt_steps:
             s = step.state
             frames.append(step.frame.astype(np.uint8))
+            between.append(mid[-1] if mid else None)
+            mid.clear()
             steps.append(
                 {
                     "x": s["x"],
@@ -68,6 +81,7 @@ def record(
                     "att": _bytes(s["attention"]),
                     "ras": s["raster"],
                     "ev": "flag" if step.flag else ("death" if step.died else ""),
+                    "h": int(between[-1] is not None),
                 }
             )
             if step.flag:
@@ -81,8 +95,10 @@ def record(
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
-    for i, frame in enumerate(frames):
+    for i, (frame, half) in enumerate(zip(frames, between)):
         Image.fromarray(frame).save(out / f"{i:04d}.jpg", quality=72)
+        if half is not None:  # the frame halfway through the decision
+            Image.fromarray(half).save(out / f"{i:04d}h.jpg", quality=72)
     meta = {
         "id": out.name,
         "level": level,
@@ -108,6 +124,13 @@ def record(
 def main() -> None:
     ap = argparse.ArgumentParser(description="Record the fly for the replay site.")
     ap.add_argument("--checkpoint", default=str(MODELS / "fly-campaign.pt"), help="mastered levels")
+    ap.add_argument(
+        "--use",
+        action="append",
+        default=["1-1=models/fly-1-2.pt", "1-2=models/fly-1-2.pt"],
+        metavar="LEVEL=CHECKPOINT",
+        help="a different fly for a level, e.g. one recorded before it forgot it",
+    )
     ap.add_argument("--practice", default=str(FLY), help="the fly in training, for practice")
     ap.add_argument("--out", default=str(RUNS / "pages"))
     ap.add_argument("--tries", type=int, default=10, help="attempts to get a run that finishes")
@@ -126,10 +149,13 @@ def main() -> None:
     rng = np.random.default_rng(args.seed)
     runs = []
     player = Player(args.checkpoint)
+    use = dict(u.split("=", 1) for u in args.use)
+    flies = {path: Player(path, fly=player.fly) for path in set(use.values())}
     for level in camp["mastered"]:
-        runs.append(record(player, level, "normal", replays / f"{level}-normal", rng, args.tries))
+        p = flies[use[level]] if level in use else player
+        runs.append(record(p, level, "normal", replays / f"{level}-normal", rng, args.tries))
         for condition in ("blind", "scrambled"):
-            runs.append(record(player, level, condition, replays / f"{level}-{condition}", rng))
+            runs.append(record(p, level, condition, replays / f"{level}-{condition}", rng))
     if camp["current"] and Path(args.practice).exists():
         practice = Player(args.practice, fly=player.fly)
         meta = record(practice, camp["current"], "normal", replays / "practice", rng)
