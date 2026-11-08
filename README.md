@@ -6,6 +6,10 @@
 ![Python 3.12](https://img.shields.io/badge/python-3.12-blue)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
+**[Watch it play](https://puneeth-rv.github.io/Smart-Fly/)**: recorded runs of every
+level it has mastered, with what reaches its eye, its neurons and the buttons it
+weighed, and the same fly blind or with its pixels scrambled.
+
 <p align="center">
   <img src="docs/media/fly-1-1.gif" alt="The fly playing World 1-1. The orange glow shows where it was looking when it chose its button; on the right, what reaches its eye, its photoreceptors' response, and the buttons it weighed." width="820">
 </p>
@@ -120,7 +124,9 @@ python -m smartfly.evaluate models/fly-campaign.pt --level 1-1 --attempts 10
 ```
 
 Open the live site: the fly playing, what it sees, its neurons, the buttons it
-weighs, its rewards, and finished levels on request.
+weighs, its rewards, and finished levels on request. The
+[published version](https://puneeth-rv.github.io/Smart-Fly/) plays recordings instead
+(`python -m smartfly.web.record`, then `scripts/publish_site.sh`).
 
 ```bash
 python -m smartfly.web.server --checkpoint models/fly-campaign.pt   # http://localhost:8090
@@ -158,7 +164,7 @@ smartfly/
   evaluate.py      normal / blind / scrambled / random test
   probe.py         what each layer of the visual system encodes
   connectome/      download, build, and extract the visual system
-  web/             the live site's server
+  web/             the live site's server, and the recorder for the published one
 site/              the page
 models/            trained flies
 results/           the measurements quoted here
