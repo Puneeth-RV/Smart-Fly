@@ -26,13 +26,12 @@ import numpy as np
 from PIL import Image
 
 from smartfly.campaign import STATE
-from smartfly.game import ACTIONS, Mario
+from smartfly.game import Mario
 from smartfly.paths import MODELS
-from smartfly.train import FLAG_BONUS, STUCK_LIMIT
+from smartfly.web.episode import play_attempt, raster_neurons
 
 DECISIONS_PER_SECOND = 15.0
 SHOW_EVERY = 2  # game frames per published frame: 30 a second at 15 decisions
-RASTER_NEURONS = 480
 
 
 def campaign_state() -> dict:
@@ -49,10 +48,6 @@ def _jpeg(frame: np.ndarray) -> bytes:
     buf = io.BytesIO()
     Image.fromarray(frame.astype(np.uint8), "RGB").save(buf, "JPEG", quality=80)
     return buf.getvalue()
-
-
-def _r3(values) -> list[float]:
-    return [round(float(v), 3) for v in values]
 
 
 class Channel:
@@ -136,15 +131,18 @@ class Channel:
             time.sleep(5)
         player = Player(self.checkpoint)
         fly = player.fly
-        lay = fly.layout
-        order = np.argsort(fly.map_cell, kind="stable")
-        raster = fly.map_neurons[order[np.linspace(0, order.size - 1, RASTER_NEURONS).astype(int)]]
+        raster = raster_neurons(player)
         loaded = self.checkpoint.stat().st_mtime
         games: dict[str, Mario] = {}
         rng = np.random.default_rng()
         attempts = 0
         with self.lock:
             self.state["ready"] = True
+
+        def between(frame: np.ndarray) -> None:
+            jpeg = _jpeg(frame)
+            self._wait_turn(frame_s)
+            self._publish(jpeg)
 
         while True:
             level = self._next_level()
@@ -159,80 +157,36 @@ class Channel:
             if level not in games:
                 games[level] = Mario(level)
             game = games[level]
-            retina = game.reset()
-            for _ in range(int(rng.integers(0, 31))):
-                retina, _, done, _ = game.step(0)
-                if done:
-                    retina = game.reset()
-            player.reset()
             attempts += 1
-            flag, best, since, total, decisions = False, 0, 0, 0.0, 0
             rewards: deque = deque(maxlen=160)
-            info: dict = {}
             frame_s = SHOW_EVERY / (player.frame_skip * DECISIONS_PER_SECOND)
-            while not game.done and since < STUCK_LIMIT and decisions < 1500 and not self.queue:
-                seen = retina.copy()
-                d = player.decide(retina, attention=True)
-                fired = np.flatnonzero(fly.brain.active[raster]).tolist()
-                reward, died = 0.0, False
-                for i in range(1, player.frame_skip + 1):
-                    retina, r, done, info = game.step(d.action)
-                    reward += float(np.clip(r, -25, 15))
-                    flag |= bool(info.get("flag_get"))
-                    if done:
-                        died = not info.get("flag_get")
-                        break
-                    if i % SHOW_EVERY == 0 and i < player.frame_skip:
-                        jpeg = _jpeg(game.frame)
-                        self._wait_turn(frame_s)
-                        self._publish(jpeg)
-                if flag:
-                    reward += FLAG_BONUS
-                total += reward / 10
-                decisions += 1
-                if game.max_x > best:
-                    best, since = game.max_x, 0
-                else:
-                    since += 1
+            flag = False
+            steps = play_attempt(
+                player,
+                game,
+                rng,
+                raster,
+                show_every=SHOW_EVERY,
+                on_frame=between,
+                stop=lambda: bool(self.queue),
+            )
+            for step in steps:
+                flag = step.flag
+                s = step.state
                 rewards.append(
-                    [
-                        round(reward / 10, 2),
-                        round(d.value, 2),
-                        "flag" if flag else ("death" if died else ""),
-                    ]
+                    [s["reward"], s["value"], "flag" if flag else ("death" if step.died else "")]
                 )
-                jpeg = _jpeg(game.frame)
-                f = d.features
+                jpeg = _jpeg(step.frame)
                 self._wait_turn(frame_s)
                 with self.fresh:
                     self._show(jpeg)
                     self.state.update(
-                        {
-                            "idle": False,
-                            "level": level,
-                            "attempt": attempts,
-                            "x": int(info.get("x_pos", 0)),
-                            "max_x": int(game.max_x),
-                            "action": ACTIONS[d.action],
-                            "actions": ACTIONS,
-                            "probs": _r3(d.probs),
-                            "value": round(d.value, 2),
-                            "return": round(total, 2),
-                            "reward_trace": list(rewards),
-                            "ckpt_frames": round(player.frames_trained / 1e6, 2),
-                            "eye": _r3(seen.ravel()),
-                            "eye_shape": list(seen.shape),
-                            "photo": _r3(f[lay["eye"]]),
-                            "deep": _r3(f[lay["deep"]]),
-                            "motion": _r3(f[lay["motion"]]),
-                            "first": _r3(f[lay["first"]]),
-                            "grid": [20, 16],
-                            "attention": _r3(d.attention),
-                            "raster": fired,
-                            "raster_n": RASTER_NEURONS,
-                            "active": int(fly.brain.active.sum()),
-                            "t": time.time(),
-                        }
+                        s,
+                        idle=False,
+                        level=level,
+                        attempt=attempts,
+                        reward_trace=list(rewards),
+                        t=time.time(),
                     )
             if self.queue:  # cut short for a request: not a result
                 continue
