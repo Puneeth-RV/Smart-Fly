@@ -44,9 +44,8 @@ PANEL_W = 330
 
 def font(size: int) -> ImageFont.ImageFont:
     for name in (
-        "/System/Library/Fonts/Helvetica.ttc",
-        "/System/Library/Fonts/SFNS.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/System/Library/Fonts/Monaco.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
     ):
         if Path(name).exists():
             return ImageFont.truetype(name, size)
@@ -77,30 +76,34 @@ def render(frame, attention, retina, photo, probs, action, level, x) -> Image.Im
         game.paste(Image.composite(layer, region, glow), (0, top))
     img.paste(game, (0, 0))
 
-    d = ImageDraw.Draw(img)
-    f_head, f_small = font(17), font(14)
-    px, w = gw + 18, PANEL_W - 34
-    y = 14
-    d.text((px, y), f"Level {level}  ·  distance {x:,}", fill=INK, font=f_head)
-    y += 30
-    half = (w - 10) // 2
-    for i, (title, values) in enumerate(
-        (("Reaches its eye", retina), ("Its photoreceptors", photo))
-    ):
-        x0 = px + i * (half + 10)
-        d.text((x0, y), title, fill=DIM, font=f_small)
-        img.paste(grey(values, RETINA, half), (x0, y + 18))
-    y += 18 + round(half * RETINA[0] / RETINA[1]) + 16
-    d.text((px, y), "Its choice", fill=DIM, font=f_small)
-    y += 20
+    # The side panel is drawn at half size with unsmoothed text, then doubled like the
+    # game's pixels, so it stays sharp when GitHub and Retina screens rescale the GIF.
+    pw, ph = PANEL_W // 2, gh // 2
+    panel = Image.new("RGB", (pw, ph), BG)
+    d = ImageDraw.Draw(panel)
+    d.fontmode = "1"
+    f = font(9)
+    px, w = 9, pw - 17
+    y = 7
+    d.text((px, y), f"{level} · distance {x:,}", fill=INK, font=f)
+    y += 17
+    half = (w - 5) // 2
+    for i, (title, values) in enumerate((("Its eye", retina), ("Receptors", photo))):
+        x0 = px + i * (half + 5)
+        d.text((x0, y), title, fill=DIM, font=f)
+        panel.paste(grey(values, RETINA, half), (x0, y + 12))
+    y += 12 + round(half * RETINA[0] / RETINA[1]) + 12
+    d.text((px, y), "Its choice", fill=DIM, font=f)
+    y += 14
     for i, name in enumerate(ACTIONS):
         on = i == action
-        d.text((px, y), LABELS[name], fill=INK if on else DIM, font=f_small)
-        bx, bw = px + 100, w - 100
-        d.rectangle((bx, y + 5, bx + bw, y + 10), fill=PANEL)
-        d.rectangle((bx, y + 5, bx + max(1, int(bw * probs[i])), y + 10), fill=HEAT if on else DIM)
-        y += 23
-    d.text((px, gh - 22), "Smart-Fly · 92,743 simulated neurons", fill=DIM, font=f_small)
+        d.text((px, y), LABELS[name], fill=INK if on else DIM, font=f)
+        bx, bw = px + 78, w - 78
+        d.rectangle((bx, y + 4, bx + bw, y + 6), fill=PANEL)
+        d.rectangle((bx, y + 4, bx + max(1, int(bw * probs[i])), y + 6), fill=HEAT if on else DIM)
+        y += 13
+    d.text((px, ph - 14), "92,743 simulated neurons", fill=DIM, font=f)
+    img.paste(panel.resize((pw * 2, ph * 2), Image.NEAREST), (gw, 0))
     return img
 
 
