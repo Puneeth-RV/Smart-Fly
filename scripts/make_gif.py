@@ -11,6 +11,8 @@ reaches the end, and records that attempt.
 from __future__ import annotations
 
 import argparse
+import shutil
+import subprocess
 from pathlib import Path
 
 import numpy as np
@@ -36,7 +38,7 @@ LABELS = {
     "jump": "Jump",
     "left": "Left",
 }
-SCALE = 1.5  # game pixels -> GIF pixels
+SCALE = 2  # game pixels -> GIF pixels; a whole number keeps every NES pixel square
 PANEL_W = 330
 
 
@@ -76,7 +78,7 @@ def render(frame, attention, retina, photo, probs, action, level, x) -> Image.Im
     img.paste(game, (0, 0))
 
     d = ImageDraw.Draw(img)
-    f_head, f_small = font(15), font(12)
+    f_head, f_small = font(17), font(14)
     px, w = gw + 18, PANEL_W - 34
     y = 14
     d.text((px, y), f"Level {level}  ·  distance {x:,}", fill=INK, font=f_head)
@@ -97,9 +99,23 @@ def render(frame, attention, retina, photo, probs, action, level, x) -> Image.Im
         bx, bw = px + 100, w - 100
         d.rectangle((bx, y + 5, bx + bw, y + 10), fill=PANEL)
         d.rectangle((bx, y + 5, bx + max(1, int(bw * probs[i])), y + 10), fill=HEAT if on else DIM)
-        y += 19
+        y += 23
     d.text((px, gh - 22), "Smart-Fly · 92,743 simulated neurons", fill=DIM, font=f_small)
     return img
+
+
+def shrink(path: Path) -> None:
+    """Re-encode with ffmpeg, if installed, so each frame stores only what changed."""
+    if not shutil.which("ffmpeg"):
+        return
+    tmp = path.with_suffix(".tmp.gif")
+    graph = (
+        "[0:v]split[a][b];[a]palettegen=max_colors=256:stats_mode=diff[p];"
+        "[b][p]paletteuse=dither=none:diff_mode=rectangle"
+    )
+    cmd = ["ffmpeg", "-v", "error", "-y", "-i", str(path), "-filter_complex", graph, str(tmp)]
+    subprocess.run(cmd, check=True)
+    tmp.replace(path)
 
 
 def main() -> None:
@@ -145,8 +161,9 @@ def main() -> None:
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     frames += [frames[-1]] * 20  # hold the end for a moment
-    pal = [f.convert("P", palette=Image.ADAPTIVE, colors=64) for f in frames]
+    pal = [f.convert("P", palette=Image.ADAPTIVE, colors=256) for f in frames]
     pal[0].save(out, save_all=True, append_images=pal[1:], duration=67, loop=0, optimize=True)
+    shrink(out)
     print(f"wrote {out}: {len(frames)} frames, {out.stat().st_size / 1e6:.1f} MB")
 
 
