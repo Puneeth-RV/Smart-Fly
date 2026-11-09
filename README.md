@@ -11,7 +11,7 @@ level it has mastered, with what reaches its eye, its neurons and the buttons it
 weighed, and the same fly blind or with its pixels scrambled.
 
 <p align="center">
-  <img src="docs/media/fly-1-1.gif" alt="The fly playing World 1-1. The orange glow shows where it was looking when it chose its button; on the right, what reaches its eye, its photoreceptors' response, and the buttons it weighed." width="820">
+  <img src="docs/media/fly-1-1.gif" alt="The fly playing World 1-1. The orange glow shows where it was looking when it chose its button; on the right, what reaches its eye, its photoreceptors' response, and the buttons it weighed." width="842">
 </p>
 
 The eye and optic lobe of a male fruit fly (92,743 neurons joined by 3.69 million
@@ -73,7 +73,7 @@ The campaign tests a level every 1.5M frames of training and moves on at 8 of
 | 1-4 | passed 8/10 | 28.6M, mostly learning to get past Bowser |
 
 <p align="center">
-  <img src="docs/media/fly-1-4.gif" alt="The fly finishing World 1-4: through the castle, then running under Bowser while he jumps, to the axe." width="820">
+  <img src="docs/media/fly-1-4.gif" alt="The fly finishing World 1-4: through the castle, then running under Bowser while he jumps, to the axe." width="842">
 </p>
 
 Next: 1-3 with practice starts, then World 2, and keeping earlier levels while
